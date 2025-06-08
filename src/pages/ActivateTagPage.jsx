@@ -1,0 +1,319 @@
+
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Tag, PawPrint, UserCircle, Phone, Edit3, AlertTriangle, CheckCircle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/supabaseClient';
+
+const ActivateTagPage = () => {
+  const { tagCode: tagCodeFromParams } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+
+  const [tagCode, setTagCode] = useState(tagCodeFromParams || '');
+  const [tagInfo, setTagInfo] = useState(null);
+  const [petInfo, setPetInfo] = useState(null); 
+  const [isLoading, setIsLoading] = useState(!!tagCodeFromParams); 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFetchingTag, setIsFetchingTag] = useState(false);
+  const [showPetForm, setShowPetForm] = useState(false);
+
+  const [formData, setFormData] = useState({
+    name: '', type: '', breed: '', ownerName: '', contactInfo: '', notes: ''
+  });
+
+  useEffect(() => {
+    if (tagCodeFromParams && !authLoading) { 
+      setTagCode(tagCodeFromParams);
+      handleFetchTagInfo(tagCodeFromParams);
+    } else if (!tagCodeFromParams) {
+      setIsLoading(false); 
+    }
+  }, [tagCodeFromParams, user, authLoading]);
+
+  useEffect(() => {
+    if (user && showPetForm) {
+      setFormData(prev => ({
+        ...prev,
+        ownerName: prev.ownerName || user.user_metadata?.full_name || user.email || '',
+        contactInfo: prev.contactInfo || user.user_metadata?.phone || user.email || '',
+      }));
+    }
+  }, [user, showPetForm]);
+
+  const handleFetchTagInfo = async (currentTagCode) => {
+    if (!currentTagCode || currentTagCode.trim() === '') {
+      toast({ title: "Entrada requerida", description: "Por favor, ingresa un código de Plakita.", variant: "default" });
+      return;
+    }
+    setIsFetchingTag(true);
+    setIsLoading(true); 
+    setPetInfo(null); 
+    setTagInfo(null); 
+    setShowPetForm(false);
+
+    const upperCaseTagCode = currentTagCode.trim().toUpperCase();
+
+    // Fetch tag first
+    const { data: fetchedTagData, error: tagError } = await supabase
+      .from('tags')
+      .select('id, code, activated, user_id, pet_id')
+      .eq('code', upperCaseTagCode)
+      .single();
+
+    if (tagError && tagError.code !== 'PGRST116') { // PGRST116: No rows found
+      setIsFetchingTag(false);
+      setIsLoading(false);
+      toast({ title: "Error", description: `Error buscando Plakita: ${tagError.message}`, variant: "destructive" });
+      return;
+    }
+    
+    if (!fetchedTagData) {
+      setIsFetchingTag(false);
+      setIsLoading(false);
+      toast({ title: "Plakita no encontrada", description: `No se encontró una Plakita con el código "${upperCaseTagCode}". Verifica el código o contacta soporte.`, variant: "destructive" });
+      return;
+    }
+
+    setTagInfo(fetchedTagData);
+    let associatedPet = null;
+
+    // If tag has a pet_id, fetch the pet
+    if (fetchedTagData.pet_id) {
+      const { data: petData, error: petError } = await supabase
+        .from('pets')
+        .select('id, name, type, breed, owner_name, owner_contact, notes, user_id, qr_activated')
+        .eq('id', fetchedTagData.pet_id)
+        .single();
+
+      if (petError && petError.code !== 'PGRST116') {
+        toast({ title: "Error", description: `Error buscando mascota asociada: ${petError.message}`, variant: "destructive" });
+      } else if (petData) {
+        associatedPet = petData;
+      }
+    }
+    
+    setIsFetchingTag(false);
+    setIsLoading(false);
+
+    // Logic to handle different states based on tag and pet info
+    if (fetchedTagData.activated && fetchedTagData.pet_id && associatedPet) {
+      const petOwnerId = associatedPet.user_id;
+      if (!user || (user && user.id !== petOwnerId)) { // If not owner, redirect to public profile
+        navigate(`/public/pet/${fetchedTagData.pet_id}`);
+        return;
+      }
+      // Owner is viewing, allow edit
+      setPetInfo(associatedPet);
+      setFormData({
+        name: associatedPet.name || '', type: associatedPet.type || '', breed: associatedPet.breed || '',
+        ownerName: associatedPet.owner_name || user?.user_metadata?.full_name || '',
+        contactInfo: associatedPet.owner_contact || user?.email || '',
+        notes: associatedPet.notes || ''
+      });
+      setShowPetForm(true);
+      toast({ title: "Plakita Encontrada", description: `Editando información para ${associatedPet.name}.`, variant: "default" });
+    } else if (fetchedTagData.user_id && user && fetchedTagData.user_id !== user.id) { // Tag claimed by another user
+      toast({ title: "Plakita Reclamada", description: "Esta Plakita ya ha sido reclamada por otro usuario.", variant: "destructive" });
+    } else { // Tag is available for activation or completion by current user
+      if (!user) { // User must be logged in
+        toast({ title: "Autenticación Requerida", description: "Inicia sesión para activar esta Plakita.", variant: "default" });
+        const redirectTo = location.pathname + location.search;
+        navigate(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+        return;
+      }
+      setShowPetForm(true); 
+      setFormData({ name: '', type: '', breed: '', ownerName: user.user_metadata?.full_name || '', contactInfo: user.email || '', notes: '' });
+      toast({ title: "Plakita Disponible", description: `Plakita ${upperCaseTagCode} lista para activar. Completa los datos de tu mascota.`, variant: "default" });
+    }
+  };
+
+  const handleSubmitPetInfo = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    if (!user) {
+      toast({ title: "Error", description: "Debes estar logueado.", variant: "destructive" });
+      setIsSubmitting(false); return;
+    }
+    if (!tagInfo) {
+      toast({ title: "Error", description: "Información de la Plakita no disponible. Intenta buscarla de nuevo.", variant: "destructive" });
+      setIsSubmitting(false); return;
+    }
+
+    const petPayload = {
+      name: formData.name, type: formData.type, breed: formData.breed,
+      owner_name: formData.ownerName, owner_contact: formData.contactInfo,
+      notes: formData.notes, user_id: user.id, qr_activated: true
+    };
+
+    try {
+      let currentPetId = petInfo?.id || tagInfo.pet_id; 
+
+      if (!currentPetId) { 
+        const { data: newPet, error: createPetError } = await supabase
+          .from('pets')
+          .insert(petPayload)
+          .select('id')
+          .single();
+        if (createPetError) throw createPetError;
+        currentPetId = newPet.id;
+      } else { 
+        const { error: updatePetError } = await supabase
+          .from('pets')
+          .update(petPayload)
+          .eq('id', currentPetId)
+          .eq('user_id', user.id); 
+        if (updatePetError) throw updatePetError;
+      }
+
+      const { error: updateTagError } = await supabase
+        .from('tags')
+        .update({ pet_id: currentPetId, activated: true, activated_at: new Date().toISOString(), user_id: user.id })
+        .eq('id', tagInfo.id);
+      if (updateTagError) throw updateTagError;
+
+      toast({ title: petInfo ? "¡Plakita Actualizada!" : "¡Plakita Activada!", description: `Operación exitosa para ${formData.name}.` });
+      navigate(`/dashboard`); 
+
+    } catch (error) {
+      toast({ title: "Error en la operación", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const pageTitle = (tagInfo?.activated && petInfo) ? "Actualizar Información de Plakita" : "Activar Plakita";
+  const submitButtonText = (tagInfo?.activated && petInfo) ? "Guardar Cambios" : "Activar y Registrar Mascota";
+
+  if (authLoading || isLoading) { 
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4 py-12">
+      <motion.div
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="w-full max-w-lg"
+      >
+        <Card className="gradient-card border-white/20 text-white">
+          <CardHeader className="text-center">
+            <div className="mx-auto bg-white/20 p-3 rounded-full inline-block mb-4">
+              <Tag className="h-10 w-10 text-purple-300" />
+            </div>
+            <CardTitle className="text-3xl font-bold">
+              {pageTitle}
+            </CardTitle>
+            <CardDescription className="text-white/80">
+              Ingresa el código de tu Plakita para activarla o editar su información.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!showPetForm && (
+              <form onSubmit={(e) => { e.preventDefault(); handleFetchTagInfo(tagCode); }} className="space-y-6">
+                <div>
+                  <Label htmlFor="tagCodeInput" className="text-purple-300 flex items-center">
+                    <Tag className="h-4 w-4 mr-2" /> Código de la Plakita
+                  </Label>
+                  <Input
+                    id="tagCodeInput"
+                    name="tagCodeInput"
+                    type="text"
+                    placeholder="Ej: PLK-XYZ123"
+                    value={tagCode}
+                    onChange={(e) => setTagCode(e.target.value.toUpperCase())}
+                    className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50"
+                    required
+                    autoFocus
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full bg-white text-purple-600 hover:bg-purple-200 font-bold py-3 text-lg"
+                  disabled={isFetchingTag}
+                >
+                  {isFetchingTag ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mr-2"></div>
+                  ) : (
+                    <CheckCircle className="h-5 w-5 mr-2" />
+                  )}
+                  Buscar Plakita
+                </Button>
+              </form>
+            )}
+
+            {showPetForm && tagInfo && (
+              <>
+                <div className="my-4 p-3 bg-black/20 rounded-md">
+                  <p className="text-sm text-purple-300">Plakita Seleccionada:</p>
+                  <p className="font-mono text-lg text-purple-200">{tagInfo.code}</p>
+                  {tagInfo.activated && petInfo && <p className="text-xs text-green-300">Esta Plakita ya está activada para <span className="font-semibold">{petInfo.name}</span>. Puedes editar los datos.</p>}
+                  {tagInfo.activated && !petInfo && tagInfo.pet_id && <p className="text-xs text-yellow-300">Esta Plakita está activada pero la mascota asociada no se encontró. Completa los datos para re-vincular.</p>}
+                  {!tagInfo.activated && <p className="text-xs text-yellow-300">Plakita lista para activar. Completa los datos de tu mascota.</p>}
+                </div>
+                <form onSubmit={handleSubmitPetInfo} className="space-y-6">
+                  <div>
+                    <Label htmlFor="name" className="text-purple-300 flex items-center"><PawPrint className="h-4 w-4 mr-2" /> Nombre de la Mascota</Label>
+                    <Input id="name" name="name" type="text" placeholder="Ej: Max, Luna" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50" required />
+                  </div>
+                  <div>
+                    <Label htmlFor="type" className="text-purple-300 flex items-center"><PawPrint className="h-4 w-4 mr-2" /> Tipo de Mascota</Label>
+                    <Select name="type" value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})} required>
+                      <SelectTrigger className="mt-1 w-full bg-white/10 border-white/30 placeholder:text-white/50"><SelectValue placeholder="Selecciona el tipo" /></SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-purple-500 text-white">
+                        <SelectItem value="perro" className="hover:bg-purple-600">Perro</SelectItem>
+                        <SelectItem value="gato" className="hover:bg-purple-600">Gato</SelectItem>
+                        <SelectItem value="ave" className="hover:bg-purple-600">Ave</SelectItem>
+                        <SelectItem value="conejo" className="hover:bg-purple-600">Conejo</SelectItem>
+                        <SelectItem value="otro" className="hover:bg-purple-600">Otro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="breed" className="text-purple-300 flex items-center"><PawPrint className="h-4 w-4 mr-2" /> Raza (Opcional)</Label>
+                    <Input id="breed" name="breed" type="text" placeholder="Ej: Labrador, Siamés" value={formData.breed} onChange={(e) => setFormData({ ...formData, breed: e.target.value })} className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50" />
+                  </div>
+                  <hr className="border-white/20" />
+                  <div>
+                    <Label htmlFor="ownerName" className="text-purple-300 flex items-center"><UserCircle className="h-4 w-4 mr-2" /> Nombre del Dueño</Label>
+                    <Input id="ownerName" name="ownerName" type="text" placeholder="Tu nombre completo" value={formData.ownerName} onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })} className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50" required />
+                  </div>
+                  <div>
+                    <Label htmlFor="contactInfo" className="text-purple-300 flex items-center"><Phone className="h-4 w-4 mr-2" /> Información de Contacto del Dueño</Label>
+                    <Input id="contactInfo" name="contactInfo" type="text" placeholder="Tu teléfono o email principal" value={formData.contactInfo} onChange={(e) => setFormData({ ...formData, contactInfo: e.target.value })} className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50" required />
+                  </div>
+                  <hr className="border-white/20" />
+                  <div>
+                    <Label htmlFor="notes" className="text-purple-300 flex items-center"><Edit3 className="h-4 w-4 mr-2" /> Notas Adicionales (Opcional)</Label>
+                    <Textarea id="notes" name="notes" placeholder="Alergias, medicación, etc." value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50 min-h-[100px]" />
+                  </div>
+                  <Button type="submit" className="w-full bg-white text-purple-600 hover:bg-purple-200 font-bold py-3 text-lg" disabled={isSubmitting}>
+                    {isSubmitting ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mr-2"></div> : ((tagInfo?.activated && petInfo) ? <CheckCircle className="h-5 w-5 mr-2" /> : <Tag className="h-5 w-5 mr-2" />)}
+                    {submitButtonText}
+                  </Button>
+                </form>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
+  );
+};
+
+export default ActivateTagPage;
