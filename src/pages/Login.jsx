@@ -1,6 +1,5 @@
-
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,8 +13,17 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      const redirectTo = new URLSearchParams(location.search).get('redirect') || '/dashboard';
+      navigate(redirectTo);
+    }
+  }, [user, navigate, location]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,7 +35,10 @@ const Login = () => {
         title: "¡Bienvenido de vuelta!",
         description: "Has iniciado sesión correctamente.",
       });
-      navigate('/dashboard');
+      
+      // Check for redirect parameter
+      const redirectTo = new URLSearchParams(location.search).get('redirect') || '/dashboard';
+      navigate(redirectTo);
     } catch (error) {
       toast({
         title: "Error al iniciar sesión",

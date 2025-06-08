@@ -106,35 +106,21 @@ const AdminDashboard = () => {
   
   const fetchAllUsersCount = async () => {
     try {
-      // Try to get users count from edge function first
-      const { data, error } = await supabase.functions.invoke('get-users-count');
+      // Fallback: count unique user_ids from tags table
+      const { data: tagsData, error: tagsError } = await supabase
+        .from('tags')
+        .select('user_id')
+        .not('user_id', 'is', null);
 
-      if (error) {
-        console.warn('Edge function failed, using fallback method:', error);
-        // Fallback: count unique user_ids from tags table
-        const { data: tagsData, error: tagsError } = await supabase
-          .from('tags')
-          .select('user_id')
-          .not('user_id', 'is', null);
-
-        if (tagsError) {
-          throw tagsError;
-        }
-
-        // Count unique user IDs
-        const uniqueUserIds = new Set(tagsData.map(tag => tag.user_id));
-        setAllUsersCount(uniqueUserIds.size);
-        return;
+      if (tagsError) {
+        throw tagsError;
       }
 
-      if (data && typeof data.count === 'number') {
-        setAllUsersCount(data.count);
-      } else {
-        throw new Error('Respuesta inesperada de la función get-users-count');
-      }
+      // Count unique user IDs
+      const uniqueUserIds = new Set(tagsData.map(tag => tag.user_id));
+      setAllUsersCount(uniqueUserIds.size);
     } catch (error) {
       console.error('Error al contar usuarios:', error);
-      // Final fallback: set to 0 and show warning
       setAllUsersCount(0);
       toast({
         title: "Advertencia",

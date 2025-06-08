@@ -87,7 +87,7 @@ const PetCard = ({ pet, index, onEdit, onDelete }) => {
             </div>
             <div>
               <p className="text-sm text-white/80">Contacto:</p>
-              <p className="font-medium">{pet.owner_contact}</p> {/* Changed from contact_info to owner_contact */}
+              <p className="font-medium">{pet.owner_contact}</p>
             </div>
           </div>
           

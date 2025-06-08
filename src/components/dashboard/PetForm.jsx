@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -7,14 +6,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 
-// initialData prop will now be used by useEffect to set formData
 const PetForm = ({ isOpen, setIsOpen, initialData, onSubmit, isEditing }) => {
-  const [formData, setFormData] = useState(initialData);
+  const [formData, setFormData] = useState(initialData || {
+    name: '',
+    type: '',
+    breed: '',
+    ownerName: '',
+    contactInfo: '',
+    notes: ''
+  });
 
-  // Update formData when initialData changes (e.g., when editing a different pet or resetting)
   useEffect(() => {
-    if (isOpen) { // Only reset form data when dialog is opened or initialData changes while open
-      setFormData(initialData);
+    if (isOpen) {
+      setFormData(initialData || {
+        name: '',
+        type: '',
+        breed: '',
+        ownerName: '',
+        contactInfo: '',
+        notes: ''
+      });
     }
   }, [isOpen, initialData]);
 
@@ -99,7 +110,6 @@ const PetForm = ({ isOpen, setIsOpen, initialData, onSubmit, isEditing }) => {
           />
         </div>
 
-        {/* Changed id to contactInfo to match formData state key */}
         <div className="space-y-2">
           <Label htmlFor="contactInfo" className="text-purple-300">Información de contacto</Label>
           <Input
