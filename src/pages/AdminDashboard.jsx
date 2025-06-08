@@ -90,18 +90,10 @@ const AdminDashboard = () => {
 
   const fetchAllTagsWithDetails = async () => {
     try {
+      // First, get all tags
       const { data: tagsData, error: tagsError } = await supabase
         .from('tags')
-        .select(`
-          id, 
-          code, 
-          activated, 
-          created_at, 
-          pet_id,
-          user_id,
-          pets:pet_id (id, name),
-          users:user_id (email) 
-        `)
+        .select('id, code, activated, created_at, pet_id, user_id')
         .order('created_at', { ascending: false });
 
       if (tagsError) {
@@ -110,8 +102,59 @@ const AdminDashboard = () => {
         setTagsWithDetails([]);
         return;
       }
-      
-      setTagsWithDetails(tagsData || []);
+
+      if (!tagsData || tagsData.length === 0) {
+        setTagsWithDetails([]);
+        return;
+      }
+
+      // Get unique pet_ids and user_ids for batch fetching
+      const petIds = [...new Set(tagsData.filter(tag => tag.pet_id).map(tag => tag.pet_id))];
+      const userIds = [...new Set(tagsData.filter(tag => tag.user_id).map(tag => tag.user_id))];
+
+      // Fetch pets data
+      let petsData = [];
+      if (petIds.length > 0) {
+        const { data: pets, error: petsError } = await supabase
+          .from('pets')
+          .select('id, name')
+          .in('id', petIds);
+        
+        if (petsError) {
+          console.error('Error fetching pets:', petsError);
+        } else {
+          petsData = pets || [];
+        }
+      }
+
+      // Fetch users data from auth.users (this might not work directly, so we'll handle it differently)
+      let usersData = [];
+      if (userIds.length > 0) {
+        try {
+          // Try to get user emails from the users table if it exists
+          const { data: users, error: usersError } = await supabase
+            .from('users')
+            .select('id, email')
+            .in('id', userIds);
+          
+          if (!usersError && users) {
+            usersData = users;
+          }
+        } catch (error) {
+          console.log('Could not fetch from users table, this is expected if using auth.users');
+          // For auth.users, we can't directly query, so we'll leave user emails empty
+          // or try to get them from the auth metadata if available
+        }
+      }
+
+      // Combine the data
+      const combinedData = tagsData.map(tag => ({
+        ...tag,
+        pets: tag.pet_id ? petsData.find(pet => pet.id === tag.pet_id) || null : null,
+        users: tag.user_id ? usersData.find(user => user.id === tag.user_id) || { email: 'Usuario registrado' } : null
+      }));
+
+      setTagsWithDetails(combinedData);
     } catch (error) {
       console.error('Unexpected error fetching tags:', error);
       toast({ title: "Error inesperado", description: "Error al cargar las Plakitas", variant: "destructive" });
