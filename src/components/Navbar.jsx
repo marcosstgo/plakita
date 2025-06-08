@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, LogOut, User, Home, ShieldCheck, Search } from 'lucide-react';
+import { Heart, LogOut, User, Home, ShieldCheck, Search, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ADMIN_USER_ID } from '@/pages/AdminDashboard';
@@ -31,10 +31,18 @@ const Navbar = () => {
           </Link>
 
           <div className="flex items-center space-x-4">
+            {/* Enlace de Ayuda - visible para todos */}
+            <Link to="/help">
+              <Button variant="ghost" className="text-white hover:bg-white/20">
+                <HelpCircle className="h-4 w-4 mr-2" />
+                Ayuda
+              </Button>
+            </Link>
+
             {user ? (
               <>
                 <Link to="/dashboard">
-                  <Button variant="ghost\" className="text-white hover:bg-white/20">
+                  <Button variant="ghost" className="text-white hover:bg-white/20">
                     <User className="h-4 w-4 mr-2" />
                     Dashboard
                   </Button>

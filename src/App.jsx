@@ -9,6 +9,7 @@ import Register from '@/pages/Register';
 import Dashboard from '@/pages/Dashboard';
 import PetProfile from '@/pages/PetProfile';
 import PublicPetProfile from '@/pages/PublicPetProfile';
+import Help from '@/pages/Help';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ActivateTagPage from '@/pages/ActivateTagPage.jsx'; 
 import AdminDashboard from '@/pages/AdminDashboard';
@@ -24,6 +25,7 @@ function App() {
               <Route index element={<Home />} />
               <Route path="login" element={<Login />} />
               <Route path="register" element={<Register />} />
+              <Route path="help" element={<Help />} />
               <Route path="activate-plakita" element={ 
                 <ProtectedRoute>
                   <ActivateTagPage /> 
