@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, User, Shield, Tag, Heart, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Search, User, Shield, Tag, Heart, CheckCircle, XCircle, AlertTriangle, Users, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
-import { adminVerifyUser } from '@/utils/verifyUserPermissions';
+import { adminVerifyUser, listAllUsers } from '@/utils/verifyUserPermissions';
 
 const UserVerification = () => {
   const [email, setEmail] = useState('santiago.marcos@gmail.com');
   const [isLoading, setIsLoading] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [error, setError] = useState(null);
+  const [allUsers, setAllUsers] = useState(null);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
 
   const handleVerifyUser = async (e) => {
     e.preventDefault();
@@ -27,11 +29,12 @@ const UserVerification = () => {
     try {
       const result = await adminVerifyUser(email.trim());
       
-      if (result.error) {
-        setError(result.error);
+      if (result.error || !result.found) {
+        setError(result.error || 'Usuario no encontrado');
+        setUserInfo(result); // Incluir sugerencias si las hay
         toast({ 
-          title: "Error en verificación", 
-          description: result.error, 
+          title: "Usuario no encontrado", 
+          description: result.error || 'El usuario no existe en el sistema', 
           variant: "destructive" 
         });
       } else {
@@ -53,6 +56,34 @@ const UserVerification = () => {
     }
   };
 
+  const handleLoadAllUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      const result = await listAllUsers();
+      if (result.error) {
+        toast({ 
+          title: "Error cargando usuarios", 
+          description: result.error, 
+          variant: "destructive" 
+        });
+      } else {
+        setAllUsers(result.users);
+        toast({ 
+          title: "Usuarios cargados", 
+          description: `Se encontraron ${result.users.length} usuarios` 
+        });
+      }
+    } catch (error) {
+      toast({ 
+        title: "Error inesperado", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
   const StatusIcon = ({ condition, trueIcon: TrueIcon, falseIcon: FalseIcon }) => {
     return condition ? (
       <TrueIcon className="h-5 w-5 text-green-400" />
@@ -63,7 +94,7 @@ const UserVerification = () => {
 
   return (
     <div className="min-h-screen py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -78,248 +109,273 @@ const UserVerification = () => {
           </p>
         </motion.div>
 
-        {/* Formulario de búsqueda */}
-        <Card className="gradient-card border-white/20 text-white mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Search className="h-6 w-6 mr-2 text-purple-300" />
-              Buscar Usuario
-            </CardTitle>
-            <CardDescription className="text-white/70">
-              Ingresa el email del usuario para verificar sus permisos y datos.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleVerifyUser} className="flex gap-4">
-              <Input
-                type="email"
-                placeholder="usuario@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-white/10 border-white/30 text-white placeholder:text-white/50"
-                required
-              />
-              <Button 
-                type="submit" 
-                disabled={isLoading}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
-              >
-                {isLoading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                ) : (
-                  <Search className="h-4 w-4 mr-2" />
-                )}
-                Verificar
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Error */}
-        {error && (
-          <Card className="error-state border-red-500/50 text-white mb-8">
-            <CardContent className="pt-6">
-              <div className="flex items-center">
-                <AlertTriangle className="h-6 w-6 text-red-400 mr-3" />
-                <div>
-                  <h3 className="font-semibold text-red-300">Error de Verificación</h3>
-                  <p className="text-red-200">{error}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Información del usuario */}
-        {userInfo && userInfo.found && (
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Panel izquierdo - Búsqueda individual */}
           <div className="space-y-6">
-            {/* Información básica */}
+            {/* Formulario de búsqueda */}
             <Card className="gradient-card border-white/20 text-white">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <User className="h-6 w-6 mr-2 text-purple-300" />
-                  Información del Usuario
+                  <Search className="h-6 w-6 mr-2 text-purple-300" />
+                  Buscar Usuario Específico
                 </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-white/70">Email:</p>
-                    <p className="font-semibold">{userInfo.user.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-white/70">Nombre completo:</p>
-                    <p className="font-semibold">{userInfo.user.full_name || 'No especificado'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-white/70">ID de usuario:</p>
-                    <p className="font-mono text-sm">{userInfo.user.id}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-white/70">Fecha de registro:</p>
-                    <p className="text-sm">{new Date(userInfo.user.created_at).toLocaleDateString()}</p>
-                  </div>
-                </div>
-
-                {/* Estado de admin */}
-                <div className="flex items-center space-x-2 p-3 rounded-lg bg-black/20">
-                  <StatusIcon 
-                    condition={userInfo.isAdmin} 
-                    trueIcon={Shield} 
-                    falseIcon={User} 
-                  />
-                  <span className={userInfo.isAdmin ? 'text-green-300 font-semibold' : 'text-white/80'}>
-                    {userInfo.isAdmin ? 'Administrador' : 'Usuario Regular'}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Estadísticas */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="gradient-card border-white/20 text-white">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-2xl font-bold">{userInfo.stats.totalTags}</p>
-                      <p className="text-sm text-white/70">Tags Totales</p>
-                    </div>
-                    <Tag className="h-8 w-8 text-purple-300" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="gradient-card border-white/20 text-white">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-2xl font-bold">{userInfo.stats.activatedTags}</p>
-                      <p className="text-sm text-white/70">Tags Activados</p>
-                    </div>
-                    <CheckCircle className="h-8 w-8 text-green-400" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="gradient-card border-white/20 text-white">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-2xl font-bold">{userInfo.stats.totalPets}</p>
-                      <p className="text-sm text-white/70">Mascotas</p>
-                    </div>
-                    <Heart className="h-8 w-8 text-pink-400" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="gradient-card border-white/20 text-white">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-2xl font-bold">{userInfo.stats.activatedPets}</p>
-                      <p className="text-sm text-white/70">Mascotas Activas</p>
-                    </div>
-                    <CheckCircle className="h-8 w-8 text-green-400" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Permisos */}
-            <Card className="gradient-card border-white/20 text-white">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Shield className="h-6 w-6 mr-2 text-purple-300" />
-                  Permisos del Usuario
-                </CardTitle>
+                <CardDescription className="text-white/70">
+                  Ingresa el email del usuario para verificar sus permisos y datos.
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {Object.entries(userInfo.permissions).map(([permission, hasPermission]) => (
-                    <div key={permission} className="flex items-center space-x-3">
-                      <StatusIcon 
-                        condition={hasPermission} 
-                        trueIcon={CheckCircle} 
-                        falseIcon={XCircle} 
-                      />
-                      <span className={hasPermission ? 'text-green-300' : 'text-red-300'}>
-                        {permission.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <form onSubmit={handleVerifyUser} className="space-y-4">
+                  <Input
+                    type="email"
+                    placeholder="usuario@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="bg-white/10 border-white/30 text-white placeholder:text-white/50"
+                    required
+                  />
+                  <Button 
+                    type="submit" 
+                    disabled={isLoading}
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                  >
+                    {isLoading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    ) : (
+                      <Search className="h-4 w-4 mr-2" />
+                    )}
+                    Verificar Usuario
+                  </Button>
+                </form>
               </CardContent>
             </Card>
 
-            {/* Tags del usuario */}
-            {userInfo.tags.length > 0 && (
-              <Card className="gradient-card border-white/20 text-white">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Tag className="h-6 w-6 mr-2 text-purple-300" />
-                    Tags del Usuario ({userInfo.tags.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {userInfo.tags.map((tag) => (
-                      <div key={tag.id} className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
-                        <div>
-                          <p className="font-mono font-semibold">{tag.code}</p>
-                          <p className="text-sm text-white/70">
-                            {tag.pets ? `Vinculado a: ${tag.pets.name} (${tag.pets.type})` : 'Sin mascota vinculada'}
+            {/* Error o sugerencias */}
+            {error && userInfo && !userInfo.found && (
+              <Card className="error-state border-red-500/50 text-white">
+                <CardContent className="pt-6">
+                  <div className="flex items-start">
+                    <AlertTriangle className="h-6 w-6 text-red-400 mr-3 mt-1" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-red-300 mb-2">Usuario No Encontrado</h3>
+                      <p className="text-red-200 mb-4">{error}</p>
+                      
+                      {userInfo.suggestions && (
+                        <div className="space-y-3">
+                          {userInfo.suggestions.similarEmails?.length > 0 && (
+                            <div>
+                              <p className="text-sm font-medium text-red-300 mb-2">Emails similares encontrados:</p>
+                              <div className="space-y-1">
+                                {userInfo.suggestions.similarEmails.map((user, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={() => setEmail(user.email)}
+                                    className="block text-sm text-red-200 hover:text-white underline"
+                                  >
+                                    {user.email} {user.full_name && `(${user.full_name})`}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          <p className="text-sm text-red-200">
+                            {userInfo.suggestions.message}
                           </p>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <StatusIcon 
-                            condition={tag.activated} 
-                            trueIcon={CheckCircle} 
-                            falseIcon={XCircle} 
-                          />
-                          <span className={tag.activated ? 'text-green-300' : 'text-yellow-300'}>
-                            {tag.activated ? 'Activado' : 'Pendiente'}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* Mascotas del usuario */}
-            {userInfo.pets.length > 0 && (
-              <Card className="gradient-card border-white/20 text-white">
-                <CardHeader>
+            {/* Información del usuario encontrado */}
+            {userInfo && userInfo.found && (
+              <div className="space-y-4">
+                {/* Información básica */}
+                <Card className="gradient-card border-white/20 text-white">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <User className="h-6 w-6 mr-2 text-purple-300" />
+                      Información del Usuario
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 gap-3">
+                      <div>
+                        <p className="text-sm text-white/70">Email:</p>
+                        <p className="font-semibold">{userInfo.user.email}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-white/70">Nombre completo:</p>
+                        <p className="font-semibold">{userInfo.user.full_name || 'No especificado'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-white/70">ID de usuario:</p>
+                        <p className="font-mono text-xs break-all">{userInfo.user.id}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-white/70">Fecha de registro:</p>
+                        <p className="text-sm">{new Date(userInfo.user.created_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+
+                    {/* Estado de admin */}
+                    <div className="flex items-center space-x-2 p-3 rounded-lg bg-black/20">
+                      <StatusIcon 
+                        condition={userInfo.isAdmin} 
+                        trueIcon={Shield} 
+                        falseIcon={User} 
+                      />
+                      <span className={userInfo.isAdmin ? 'text-green-300 font-semibold' : 'text-white/80'}>
+                        {userInfo.isAdmin ? 'Administrador' : 'Usuario Regular'}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Estadísticas */}
+                <div className="grid grid-cols-2 gap-3">
+                  <Card className="gradient-card border-white/20 text-white">
+                    <CardContent className="pt-4">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold">{userInfo.stats.totalTags}</p>
+                        <p className="text-xs text-white/70">Tags Totales</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="gradient-card border-white/20 text-white">
+                    <CardContent className="pt-4">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold">{userInfo.stats.activatedTags}</p>
+                        <p className="text-xs text-white/70">Tags Activados</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="gradient-card border-white/20 text-white">
+                    <CardContent className="pt-4">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold">{userInfo.stats.totalPets}</p>
+                        <p className="text-xs text-white/70">Mascotas</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="gradient-card border-white/20 text-white">
+                    <CardContent className="pt-4">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold">{userInfo.stats.activatedPets}</p>
+                        <p className="text-xs text-white/70">Activas</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Tags del usuario */}
+                {userInfo.tags.length > 0 && (
+                  <Card className="gradient-card border-white/20 text-white">
+                    <CardHeader>
+                      <CardTitle className="flex items-center text-lg">
+                        <Tag className="h-5 w-5 mr-2 text-purple-300" />
+                        Tags ({userInfo.tags.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {userInfo.tags.slice(0, 3).map((tag) => (
+                          <div key={tag.id} className="flex items-center justify-between p-2 bg-black/20 rounded text-sm">
+                            <span className="font-mono">{tag.code}</span>
+                            <StatusIcon 
+                              condition={tag.activated} 
+                              trueIcon={CheckCircle} 
+                              falseIcon={XCircle} 
+                            />
+                          </div>
+                        ))}
+                        {userInfo.tags.length > 3 && (
+                          <p className="text-xs text-white/70 text-center">
+                            ... y {userInfo.tags.length - 3} más
+                          </p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Panel derecho - Lista de todos los usuarios */}
+          <div className="space-y-6">
+            <Card className="gradient-card border-white/20 text-white">
+              <CardHeader>
+                <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center">
-                    <Heart className="h-6 w-6 mr-2 text-pink-400" />
-                    Mascotas del Usuario ({userInfo.pets.length})
+                    <Users className="h-6 w-6 mr-2 text-purple-300" />
+                    Todos los Usuarios
                   </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {userInfo.pets.map((pet) => (
-                      <div key={pet.id} className="p-4 bg-black/20 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-semibold text-lg">{pet.name}</h4>
-                          <StatusIcon 
-                            condition={pet.qr_activated} 
-                            trueIcon={CheckCircle} 
-                            falseIcon={XCircle} 
-                          />
+                  <Button
+                    onClick={handleLoadAllUsers}
+                    disabled={isLoadingUsers}
+                    size="sm"
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {isLoadingUsers ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Cargar
+                  </Button>
+                </div>
+                <CardDescription className="text-white/70">
+                  Lista de todos los usuarios registrados en el sistema.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {allUsers ? (
+                  <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
+                    {allUsers.map((user) => (
+                      <div 
+                        key={user.id} 
+                        className="p-3 bg-black/20 rounded-lg hover:bg-black/30 transition-colors cursor-pointer"
+                        onClick={() => setEmail(user.email)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{user.email}</p>
+                            {user.full_name && (
+                              <p className="text-sm text-white/70 truncate">{user.full_name}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2 ml-2">
+                            <div className="text-center">
+                              <p className="text-xs font-bold">{user.stats.totalTags}</p>
+                              <p className="text-xs text-white/60">Tags</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs font-bold">{user.stats.totalPets}</p>
+                              <p className="text-xs text-white/60">Pets</p>
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-white/70 text-sm">{pet.type} {pet.breed && `• ${pet.breed}`}</p>
-                        <p className="text-white/70 text-sm">Dueño: {pet.owner_name}</p>
-                        <p className="text-white/70 text-sm">Contacto: {pet.owner_contact}</p>
+                        <p className="text-xs text-white/50 mt-1">
+                          Registrado: {new Date(user.created_at).toLocaleDateString()}
+                        </p>
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                ) : (
+                  <p className="text-white/70 text-center py-8">
+                    Haz clic en "Cargar" para ver todos los usuarios
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
