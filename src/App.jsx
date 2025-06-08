@@ -10,9 +10,9 @@ import Dashboard from '@/pages/Dashboard';
 import PetProfile from '@/pages/PetProfile';
 import PublicPetProfile from '@/pages/PublicPetProfile';
 import ProtectedRoute from '@/components/ProtectedRoute';
-// Attempting to import ActivateTagPage.jsx based on file list
 import ActivateTagPage from '@/pages/ActivateTagPage.jsx'; 
 import AdminDashboard from '@/pages/AdminDashboard';
+import UserVerification from '@/pages/UserVerification';
 
 function App() {
   return (
@@ -26,7 +26,6 @@ function App() {
               <Route path="register" element={<Register />} />
               <Route path="activate-plakita" element={ 
                 <ProtectedRoute>
-                  {/* Using ActivateTagPage here as well, assuming it's the correct component */}
                   <ActivateTagPage /> 
                 </ProtectedRoute>
               } />
@@ -48,6 +47,11 @@ function App() {
                <Route path="admin" element={
                 <ProtectedRoute>
                   <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="verify-user" element={
+                <ProtectedRoute>
+                  <UserVerification />
                 </ProtectedRoute>
               } />
             </Route>

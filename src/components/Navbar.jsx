@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, LogOut, User, Home, ShieldCheck } from 'lucide-react';
+import { Heart, LogOut, User, Home, ShieldCheck, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ADMIN_USER_ID } from '@/pages/AdminDashboard';
@@ -41,12 +40,20 @@ const Navbar = () => {
                   </Button>
                 </Link>
                 {isUserAdmin && (
-                  <Link to="/admin">
-                    <Button variant="ghost" className="text-white hover:bg-purple-600/50">
-                      <ShieldCheck className="h-4 w-4 mr-2" />
-                      Admin Panel
-                    </Button>
-                  </Link>
+                  <>
+                    <Link to="/admin">
+                      <Button variant="ghost" className="text-white hover:bg-purple-600/50">
+                        <ShieldCheck className="h-4 w-4 mr-2" />
+                        Admin Panel
+                      </Button>
+                    </Link>
+                    <Link to="/verify-user">
+                      <Button variant="ghost" className="text-white hover:bg-blue-600/50">
+                        <Search className="h-4 w-4 mr-2" />
+                        Verificar Usuario
+                      </Button>
+                    </Link>
+                  </>
                 )}
                 <Button 
                   variant="ghost" 
