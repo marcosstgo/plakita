@@ -17,31 +17,40 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      
-      // Sincronizar usuario con public.users si existe
-      if (currentUser) {
-        await syncCurrentUser(currentUser);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        
+        // Sincronizar usuario con public.users si existe
+        if (currentUser) {
+          await syncCurrentUser(currentUser);
+        }
+      } catch (error) {
+        console.error('Error getting session:', error);
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     getSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        
-        // Sincronizar usuario con public.users en cada cambio de auth
-        if (currentUser && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-          await syncCurrentUser(currentUser);
+        try {
+          const currentUser = session?.user ?? null;
+          setUser(currentUser);
+          
+          // Sincronizar usuario con public.users en cada cambio de auth
+          if (currentUser && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+            await syncCurrentUser(currentUser);
+          }
+        } catch (error) {
+          console.error('Error in auth state change:', error);
+        } finally {
+          setLoading(false);
         }
-        
-        setLoading(false);
       }
     );
 
@@ -51,44 +60,59 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw error;
-    
-    // Sincronizar usuario después del login
-    if (data.user) {
-      await syncCurrentUser(data.user);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      
+      // Sincronizar usuario después del login
+      if (data.user) {
+        await syncCurrentUser(data.user);
+      }
+      
+      return data.user;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     }
-    
-    return data.user;
   };
 
   const register = async (name, email, password) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: name,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+          }
         }
+      });
+      if (error) throw error;
+      
+      // La sincronización se hará automáticamente por el trigger
+      // pero también la hacemos aquí por si acaso
+      if (data.user) {
+        await syncCurrentUser(data.user);
       }
-    });
-    if (error) throw error;
-    
-    // La sincronización se hará automáticamente por el trigger
-    // pero también la hacemos aquí por si acaso
-    if (data.user) {
-      await syncCurrentUser(data.user);
+      
+      return data.user;
+    } catch (error) {
+      console.error('Register error:', error);
+      throw error;
     }
-    
-    return data.user;
   };
 
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
   };
 
   const value = {

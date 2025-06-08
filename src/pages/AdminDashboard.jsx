@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase, testDatabaseQueries, checkRequiredColumns } from '@/lib/supabaseClient';
+import { supabase, testDatabaseQueries, checkRequiredColumns, getAllTagsWithDetails } from '@/lib/supabaseClient';
 import AdminStatsGrid from '@/components/admin/AdminStatsGrid';
 import AdminTagsTable from '@/components/admin/AdminTagsTable';
 import CreateTagDialog from '@/components/admin/CreateTagDialog';
@@ -67,6 +67,10 @@ const AdminDashboard = () => {
       
       if (!columnChecks.tags_created_at?.exists) {
         errors.push('Columna tags.created_at no existe o no es accesible');
+      }
+      
+      if (!columnChecks.public_users?.exists) {
+        errors.push('Tabla public.users no existe o no es accesible');
       }
     } catch (error) {
       errors.push(`Error verificando esquema: ${error.message}`);
@@ -136,72 +140,15 @@ const AdminDashboard = () => {
 
   const fetchAllTagsWithDetails = async () => {
     try {
-      // Primero intentar consulta básica
-      const { data: tagsData, error: tagsError } = await supabase
-        .from('tags')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (tagsError) {
-        console.error('Error fetching tags:', tagsError);
-        toast({ title: "Error cargando tags", description: tagsError.message, variant: "destructive" });
+      const result = await getAllTagsWithDetails();
+      
+      if (result.success) {
+        setTagsWithDetails(result.data);
+      } else {
+        console.error('Error fetching tags:', result.error);
+        toast({ title: "Error cargando tags", description: result.error, variant: "destructive" });
         setTagsWithDetails([]);
-        return;
       }
-
-      if (!tagsData || tagsData.length === 0) {
-        setTagsWithDetails([]);
-        return;
-      }
-
-      // Obtener IDs únicos para consultas batch
-      const petIds = [...new Set(tagsData.filter(tag => tag.pet_id).map(tag => tag.pet_id))];
-      const userIds = [...new Set(tagsData.filter(tag => tag.user_id).map(tag => tag.user_id))];
-
-      // Fetch pets data si hay pet_ids
-      let petsData = [];
-      if (petIds.length > 0) {
-        try {
-          const { data: pets, error: petsError } = await supabase
-            .from('pets')
-            .select('id, name')
-            .in('id', petIds);
-          
-          if (petsError) {
-            console.error('Error fetching pets:', petsError);
-          } else {
-            petsData = pets || [];
-          }
-        } catch (error) {
-          console.error('Error fetching pets:', error);
-        }
-      }
-
-      // Para usuarios, intentar obtener emails de la tabla users
-      let usersData = [];
-      if (userIds.length > 0) {
-        try {
-          const { data: users, error: usersError } = await supabase
-            .from('users')
-            .select('id, email')
-            .in('id', userIds);
-          
-          if (!usersError && users) {
-            usersData = users;
-          }
-        } catch (error) {
-          console.log('Could not fetch from users table, using fallback');
-        }
-      }
-
-      // Combinar los datos
-      const combinedData = tagsData.map(tag => ({
-        ...tag,
-        pets: tag.pet_id ? petsData.find(pet => pet.id === tag.pet_id) || null : null,
-        users: tag.user_id ? (usersData.find(user => user.id === tag.user_id) || { email: 'Usuario registrado' }) : null
-      }));
-
-      setTagsWithDetails(combinedData);
     } catch (error) {
       console.error('Unexpected error fetching tags:', error);
       toast({ title: "Error inesperado", description: "Error al cargar las Plakitas", variant: "destructive" });
@@ -229,19 +176,16 @@ const AdminDashboard = () => {
   
   const fetchAllUsersCount = async () => {
     try {
-      // Contar IDs únicos de usuario desde tags
-      const { data: tagsData, error: tagsError } = await supabase
-        .from('tags')
-        .select('user_id')
-        .not('user_id', 'is', null);
-
-      if (tagsError) {
-        throw tagsError;
+      const { count, error } = await supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true });
+      
+      if (error) {
+        console.error('Error counting users:', error);
+        setAllUsersCount(0);
+      } else {
+        setAllUsersCount(count || 0);
       }
-
-      // Contar IDs únicos
-      const uniqueUserIds = new Set(tagsData.map(tag => tag.user_id));
-      setAllUsersCount(uniqueUserIds.size);
     } catch (error) {
       console.error('Error al contar usuarios:', error);
       setAllUsersCount(0);

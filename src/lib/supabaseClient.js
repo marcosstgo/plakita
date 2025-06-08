@@ -22,8 +22,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // Helper function to safely check database connection
 export const checkDatabaseConnection = async () => {
   try {
-    // Usar una consulta muy simple primero
-    const { data, error } = await supabase.from('tags').select('*').limit(1);
+    const { data, error } = await supabase.from('tags').select('id').limit(1);
     if (error) throw error;
     return { connected: true, error: null };
   } catch (error) {
@@ -39,7 +38,6 @@ export const verifyDatabaseSchema = async () => {
   
   for (const table of tables) {
     try {
-      // Usar consulta simple sin especificar columnas
       const { data, error } = await supabase.from(table).select('*').limit(1);
       results[table] = { exists: !error, error: error?.message };
     } catch (error) {
@@ -50,20 +48,20 @@ export const verifyDatabaseSchema = async () => {
   return results;
 };
 
-// Helper function to safely test specific queries
+// Helper function to safely test specific queries with better error handling
 export const testDatabaseQueries = async () => {
   const tests = {};
   
   try {
-    // Test básico de tags - usar * primero
+    // Test básico de tags
     const { data: tagsData, error: tagsError } = await supabase
       .from('tags')
-      .select('*')
+      .select('id, code, activated')
       .limit(1);
     
     tests.tags_basic = { success: !tagsError, error: tagsError?.message };
 
-    // Si el test básico funciona, probar columnas específicas
+    // Test de columnas específicas de tags
     if (!tagsError) {
       try {
         const { data: tagsSpecific, error: tagsSpecificError } = await supabase
@@ -84,12 +82,12 @@ export const testDatabaseQueries = async () => {
     // Test básico de pets
     const { data: petsData, error: petsError } = await supabase
       .from('pets')
-      .select('*')
+      .select('id, name, type')
       .limit(1);
     
     tests.pets_basic = { success: !petsError, error: petsError?.message };
 
-    // Si el test básico funciona, probar columnas específicas
+    // Test de columnas específicas de pets
     if (!petsError) {
       try {
         const { data: petsSpecific, error: petsSpecificError } = await supabase
@@ -120,7 +118,7 @@ export const testDatabaseQueries = async () => {
   
   try {
     // Test de join solo si los tests básicos funcionan
-    if (tests.tags_basic?.success && tests.pets_basic?.success) {
+    if (tests.tags_basic?.success && tests.pets_basic?.success && tests.users_public?.success) {
       const { data: joinData, error: joinError } = await supabase
         .from('tags')
         .select(`
@@ -141,7 +139,7 @@ export const testDatabaseQueries = async () => {
   return tests;
 };
 
-// Helper function to check specific columns
+// Helper function to check specific columns with improved error handling
 export const checkRequiredColumns = async () => {
   const columnChecks = {};
   
@@ -208,7 +206,7 @@ export const checkRequiredColumns = async () => {
   return columnChecks;
 };
 
-// Helper function to sync current user to public.users
+// Helper function to sync current user to public.users with better error handling
 export const syncCurrentUser = async (user) => {
   if (!user) return { success: false, error: 'No user provided' };
   
@@ -227,6 +225,77 @@ export const syncCurrentUser = async (user) => {
     
     return { success: !error, data, error: error?.message };
   } catch (error) {
+    console.error('Error syncing user:', error);
     return { success: false, error: error.message };
+  }
+};
+
+// Helper function to get user data safely
+export const getUserData = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    return { success: !error, data, error: error?.message };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Helper function to get user tags with pets data
+export const getUserTagsWithPets = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('tags')
+      .select(`
+        id,
+        code,
+        activated,
+        created_at,
+        pet_id,
+        pets:pet_id (
+          id,
+          name,
+          type,
+          breed,
+          owner_name,
+          owner_contact,
+          notes,
+          qr_activated
+        )
+      `)
+      .eq('user_id', userId)
+      .not('pet_id', 'is', null)
+      .order('created_at', { ascending: false });
+    
+    return { success: !error, data: data || [], error: error?.message };
+  } catch (error) {
+    return { success: false, data: [], error: error.message };
+  }
+};
+
+// Helper function to get all tags for admin with related data
+export const getAllTagsWithDetails = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('tags')
+      .select(`
+        id,
+        code,
+        activated,
+        created_at,
+        pet_id,
+        user_id,
+        pets:pet_id (id, name),
+        users:user_id (email, full_name)
+      `)
+      .order('created_at', { ascending: false });
+    
+    return { success: !error, data: data || [], error: error?.message };
+  } catch (error) {
+    return { success: false, data: [], error: error.message };
   }
 };

@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, getUserTagsWithPets } from '@/lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import PetCard from '@/components/dashboard/PetCard';
 
@@ -22,65 +22,42 @@ const Dashboard = () => {
       setIsLoading(false);
       return;
     }
+    
     setIsLoading(true);
 
     try {
-      // Fetch tags associated with the user that have a pet_id
-      const { data: tagsData, error: tagsError } = await supabase
-        .from('tags')
-        .select('id, code, activated, pet_id, user_id')
-        .eq('user_id', user.id)
-        .not('pet_id', 'is', null);
-
-      if (tagsError) {
-        throw tagsError;
-      }
-
-      if (!tagsData || tagsData.length === 0) {
-        setPetsWithTags([]);
-        setIsLoading(false);
-        return;
-      }
-
-      // Extract pet_ids and fetch corresponding pets
-      const petIds = tagsData.map(tag => tag.pet_id).filter(id => id !== null);
+      const result = await getUserTagsWithPets(user.id);
       
-      if (petIds.length === 0) {
-        setPetsWithTags([]);
-        setIsLoading(false);
-        return;
-      }
-
-      const { data: petsData, error: petsError } = await supabase
-        .from('pets')
-        .select('id, name, type, breed, owner_name, owner_contact, notes, qr_activated, user_id')
-        .in('id', petIds)
-        .eq('user_id', user.id);
-      
-      if (petsError) {
-        throw petsError;
-      }
-
-      // Combine tags and pets data
-      const combinedData = petsData.map(pet => {
-        const tag = tagsData.find(t => t.pet_id === pet.id);
-        if (!tag) return null;
-        return {
-          ...pet,
+      if (result.success) {
+        // Transformar los datos para que coincidan con el formato esperado
+        const transformedData = result.data.map(tag => ({
+          ...tag.pets,
           tags: {
             id: tag.id,
             code: tag.code,
             activated: tag.activated,
             pet_id: tag.pet_id,
-            user_id: tag.user_id
+            user_id: user.id
           }
-        };
-      }).filter(item => item !== null);
+        })).filter(item => item.id); // Filtrar items sin pet data
 
-      setPetsWithTags(combinedData);
+        setPetsWithTags(transformedData);
+      } else {
+        console.error('Error loading pets and tags:', result.error);
+        toast({ 
+          title: "Error cargando datos", 
+          description: result.error || "No se pudieron cargar los datos", 
+          variant: "destructive" 
+        });
+        setPetsWithTags([]);
+      }
     } catch (error) {
-      console.error('Error loading pets and tags:', error);
-      toast({ title: "Error cargando datos", description: error.message, variant: "destructive" });
+      console.error('Unexpected error:', error);
+      toast({ 
+        title: "Error inesperado", 
+        description: "Ocurrió un error al cargar los datos", 
+        variant: "destructive" 
+      });
       setPetsWithTags([]);
     } finally {
       setIsLoading(false);

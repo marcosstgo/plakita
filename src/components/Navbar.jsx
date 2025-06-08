@@ -34,7 +34,7 @@ const Navbar = () => {
             {user ? (
               <>
                 <Link to="/dashboard">
-                  <Button variant="ghost\" className="text-white hover:bg-white/20">
+                  <Button variant="ghost" className="text-white hover:bg-white/20">
                     <User className="h-4 w-4 mr-2" />
                     Dashboard
                   </Button>

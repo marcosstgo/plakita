@@ -1,94 +1,11 @@
 import { supabase } from '@/lib/supabaseClient';
 
-// Función para verificar permisos de un usuario específico
-export const verifyUserPermissions = async (email) => {
-  try {
-    console.log(`🔍 Verificando permisos para: ${email}`);
-    
-    // 1. Verificar si el usuario existe en auth.users
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-    
-    if (authError) {
-      console.error('Error accediendo a auth.users:', authError);
-      return { error: 'No se puede acceder a auth.users desde el cliente' };
-    }
-
-    const authUser = authUsers?.users?.find(user => user.email === email);
-    
-    // 2. Verificar si existe en public.users
-    const { data: publicUser, error: publicError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (publicError) {
-      console.error('Error consultando public.users:', publicError);
-    }
-
-    // 3. Verificar tags asociadas
-    const { data: userTags, error: tagsError } = await supabase
-      .from('tags')
-      .select('*')
-      .eq('user_id', publicUser?.id || authUser?.id);
-
-    if (tagsError) {
-      console.error('Error consultando tags:', tagsError);
-    }
-
-    // 4. Verificar mascotas asociadas
-    const { data: userPets, error: petsError } = await supabase
-      .from('pets')
-      .select('*')
-      .eq('user_id', publicUser?.id || authUser?.id);
-
-    if (petsError) {
-      console.error('Error consultando pets:', petsError);
-    }
-
-    // 5. Verificar si es admin
-    const ADMIN_USER_ID = '08c4845d-28e2-4a9a-b05d-350fac947b28';
-    const isAdmin = (publicUser?.id || authUser?.id) === ADMIN_USER_ID;
-
-    const result = {
-      email,
-      authUser: authUser ? {
-        id: authUser.id,
-        email: authUser.email,
-        created_at: authUser.created_at,
-        email_confirmed_at: authUser.email_confirmed_at,
-        last_sign_in_at: authUser.last_sign_in_at,
-        user_metadata: authUser.user_metadata
-      } : null,
-      publicUser: publicUser || null,
-      tags: userTags || [],
-      pets: userPets || [],
-      isAdmin,
-      permissions: {
-        canLogin: !!authUser,
-        canAccessDashboard: !!authUser,
-        canAccessAdmin: isAdmin,
-        hasPublicProfile: !!publicUser,
-        tagsCount: userTags?.length || 0,
-        petsCount: userPets?.length || 0
-      }
-    };
-
-    console.log('📊 Resultado de verificación:', result);
-    return result;
-
-  } catch (error) {
-    console.error('Error verificando permisos:', error);
-    return { error: error.message };
-  }
-};
-
-// Función para verificar permisos desde el admin panel
+// Función para verificar permisos desde el admin panel con manejo de errores mejorado
 export const adminVerifyUser = async (email) => {
   try {
     console.log(`🔐 [ADMIN] Verificando usuario: ${email}`);
     
-    // Primero buscar en public.users
+    // Buscar en public.users
     const { data: publicUser, error: publicError } = await supabase
       .from('users')
       .select('*')
@@ -114,25 +31,11 @@ export const adminVerifyUser = async (email) => {
         console.error('Error buscando usuarios similares:', similarError);
       }
 
-      // También buscar en tags por si el usuario tiene datos pero no está sincronizado
-      const { data: tagsWithUsers, error: tagsError } = await supabase
-        .from('tags')
-        .select(`
-          user_id,
-          users:user_id (email, full_name)
-        `)
-        .not('user_id', 'is', null);
-
-      if (tagsError) {
-        console.error('Error consultando tags:', tagsError);
-      }
-
       return { 
         found: false,
         error: 'Usuario no encontrado en public.users',
         suggestions: {
           similarEmails: similarUsers || [],
-          usersWithTags: tagsWithUsers?.map(t => t.users).filter(Boolean) || [],
           message: `No se encontró el usuario "${email}". Verifica que el email sea correcto o que el usuario se haya registrado en el sistema.`
         }
       };
@@ -197,25 +100,7 @@ export const adminVerifyUser = async (email) => {
   }
 };
 
-// Función para sincronizar un usuario específico
-export const syncSpecificUser = async (email) => {
-  try {
-    console.log(`🔄 Sincronizando usuario: ${email}`);
-    
-    // Esta función requeriría acceso a auth.admin que no está disponible desde el cliente
-    // En su lugar, podemos intentar crear el usuario en public.users si tenemos la información
-    
-    return { 
-      error: 'La sincronización manual requiere acceso de administrador a auth.users' 
-    };
-    
-  } catch (error) {
-    console.error('Error sincronizando usuario:', error);
-    return { error: error.message };
-  }
-};
-
-// Función para listar todos los usuarios (solo admin)
+// Función para listar todos los usuarios (solo admin) con manejo de errores mejorado
 export const listAllUsers = async () => {
   try {
     console.log('📋 Listando todos los usuarios...');
@@ -238,25 +123,38 @@ export const listAllUsers = async () => {
     // Obtener estadísticas para cada usuario
     const usersWithStats = await Promise.all(
       allUsers.map(async (user) => {
-        const { data: userTags } = await supabase
-          .from('tags')
-          .select('id, activated')
-          .eq('user_id', user.id);
+        try {
+          const { data: userTags } = await supabase
+            .from('tags')
+            .select('id, activated')
+            .eq('user_id', user.id);
 
-        const { data: userPets } = await supabase
-          .from('pets')
-          .select('id, qr_activated')
-          .eq('user_id', user.id);
+          const { data: userPets } = await supabase
+            .from('pets')
+            .select('id, qr_activated')
+            .eq('user_id', user.id);
 
-        return {
-          ...user,
-          stats: {
-            totalTags: userTags?.length || 0,
-            activatedTags: userTags?.filter(tag => tag.activated)?.length || 0,
-            totalPets: userPets?.length || 0,
-            activatedPets: userPets?.filter(pet => pet.qr_activated)?.length || 0
-          }
-        };
+          return {
+            ...user,
+            stats: {
+              totalTags: userTags?.length || 0,
+              activatedTags: userTags?.filter(tag => tag.activated)?.length || 0,
+              totalPets: userPets?.length || 0,
+              activatedPets: userPets?.filter(pet => pet.qr_activated)?.length || 0
+            }
+          };
+        } catch (error) {
+          console.error(`Error getting stats for user ${user.id}:`, error);
+          return {
+            ...user,
+            stats: {
+              totalTags: 0,
+              activatedTags: 0,
+              totalPets: 0,
+              activatedPets: 0
+            }
+          };
+        }
       })
     );
 
@@ -265,5 +163,60 @@ export const listAllUsers = async () => {
   } catch (error) {
     console.error('Error listando usuarios:', error);
     return { error: error.message };
+  }
+};
+
+// Función para verificar el estado de la base de datos
+export const verifyDatabaseHealth = async () => {
+  try {
+    const health = {
+      tables: {},
+      columns: {},
+      policies: {},
+      overall: true
+    };
+
+    // Verificar tablas principales
+    const tables = ['users', 'tags', 'pets'];
+    for (const table of tables) {
+      try {
+        const { data, error } = await supabase.from(table).select('*').limit(1);
+        health.tables[table] = { exists: !error, error: error?.message };
+        if (error) health.overall = false;
+      } catch (error) {
+        health.tables[table] = { exists: false, error: error.message };
+        health.overall = false;
+      }
+    }
+
+    // Verificar columnas críticas
+    const criticalColumns = [
+      { table: 'tags', column: 'user_id' },
+      { table: 'tags', column: 'created_at' },
+      { table: 'pets', column: 'qr_activated' },
+      { table: 'users', column: 'full_name' }
+    ];
+
+    for (const { table, column } of criticalColumns) {
+      try {
+        const { data, error } = await supabase.from(table).select(column).limit(1);
+        health.columns[`${table}.${column}`] = { exists: !error, error: error?.message };
+        if (error) health.overall = false;
+      } catch (error) {
+        health.columns[`${table}.${column}`] = { exists: false, error: error.message };
+        health.overall = false;
+      }
+    }
+
+    return health;
+
+  } catch (error) {
+    return { 
+      overall: false, 
+      error: error.message,
+      tables: {},
+      columns: {},
+      policies: {}
+    };
   }
 };
