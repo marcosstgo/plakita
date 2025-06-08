@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://pjojqwgxopdclfsovlgt.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqb2pxd2d4b3BkY2xmc292bGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM2OTQ0NzQsImV4cCI6MjA0OTI3MDQ3NH0.Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8';
+// NOTA: Estas son las credenciales originales - verificar si funcionan
+const supabaseUrl = 'https://yseyznpiemscdskczdak.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlzZXl6bnBpZW1zY2Rza2N6ZGFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkxODUzNTksImV4cCI6MjA2NDc2MTM1OX0.OZ164B1YHzsUg-Mll0d_XJk4cnLsoGLRkuYjhegdlmI';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
