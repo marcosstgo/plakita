@@ -30,35 +30,35 @@ const Navbar = () => {
             <span className="text-2xl font-bold text-white">Plakita</span>
           </Link>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-1 sm:space-x-4">
             {/* Enlace de Ayuda - visible para todos */}
             <Link to="/help">
-              <Button variant="ghost" className="text-white hover:bg-white/20">
-                <HelpCircle className="h-4 w-4 mr-2" />
-                Ayuda
+              <Button variant="ghost" className="text-white hover:bg-white/20 p-2 sm:px-4">
+                <HelpCircle className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Ayuda</span>
               </Button>
             </Link>
 
             {user ? (
               <>
                 <Link to="/dashboard">
-                  <Button variant="ghost" className="text-white hover:bg-white/20">
-                    <User className="h-4 w-4 mr-2" />
-                    Dashboard
+                  <Button variant="ghost" className="text-white hover:bg-white/20 p-2 sm:px-4">
+                    <User className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Dashboard</span>
                   </Button>
                 </Link>
                 {isUserAdmin && (
                   <>
                     <Link to="/admin">
-                      <Button variant="ghost" className="text-white hover:bg-purple-600/50">
-                        <ShieldCheck className="h-4 w-4 mr-2" />
-                        Admin Panel
+                      <Button variant="ghost" className="text-white hover:bg-purple-600/50 p-2 sm:px-4">
+                        <ShieldCheck className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden md:inline">Admin</span>
                       </Button>
                     </Link>
                     <Link to="/verify-user">
-                      <Button variant="ghost" className="text-white hover:bg-blue-600/50">
-                        <Search className="h-4 w-4 mr-2" />
-                        Verificar Usuario
+                      <Button variant="ghost" className="text-white hover:bg-blue-600/50 p-2 sm:px-4">
+                        <Search className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden lg:inline">Verificar</span>
                       </Button>
                     </Link>
                   </>
@@ -66,21 +66,21 @@ const Navbar = () => {
                 <Button 
                   variant="ghost" 
                   onClick={handleLogout}
-                  className="text-white hover:bg-white/20"
+                  className="text-white hover:bg-white/20 p-2 sm:px-4"
                 >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Cerrar Sesión
+                  <LogOut className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Cerrar Sesión</span>
                 </Button>
               </>
             ) : (
               <>
                 <Link to="/login">
-                  <Button variant="ghost" className="text-white hover:bg-white/20">
+                  <Button variant="ghost" className="text-white hover:bg-white/20 text-sm sm:text-base px-2 sm:px-4">
                     Iniciar Sesión
                   </Button>
                 </Link>
                 <Link to="/register">
-                  <Button className="bg-white text-purple-600 hover:bg-white/90">
+                  <Button className="bg-white text-purple-600 hover:bg-white/90 text-sm sm:text-base px-2 sm:px-4">
                     Registrarse
                   </Button>
                 </Link>
