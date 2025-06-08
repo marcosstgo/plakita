@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Tag, Users, QrCode, Heart, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Plus, Tag, Users, QrCode, Heart, AlertTriangle, ShieldCheck, RefreshCw } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, testDatabaseQueries } from '@/lib/supabaseClient';
 import AdminStatsGrid from '@/components/admin/AdminStatsGrid';
 import AdminTagsTable from '@/components/admin/AdminTagsTable';
 import CreateTagDialog from '@/components/admin/CreateTagDialog';
@@ -25,6 +25,24 @@ const AdminDashboard = () => {
   const [tagToDelete, setTagToDelete] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isActuallyAdmin, setIsActuallyAdmin] = useState(false);
+  const [databaseStatus, setDatabaseStatus] = useState(null);
+
+  const testDatabase = async () => {
+    try {
+      const results = await testDatabaseQueries();
+      setDatabaseStatus(results);
+      
+      // Show any errors
+      Object.entries(results).forEach(([test, result]) => {
+        if (!result.success) {
+          console.error(`Database test failed for ${test}:`, result.error);
+        }
+      });
+    } catch (error) {
+      console.error('Database test error:', error);
+      setDatabaseStatus({ error: error.message });
+    }
+  };
 
   const fetchData = useCallback(async () => {
     if (!isActuallyAdmin) {
@@ -33,12 +51,14 @@ const AdminDashboard = () => {
     }
     setIsLoading(true);
     try {
+      await testDatabase();
       await Promise.all([
         fetchAllTagsWithDetails(),
         fetchAllPetsCount(),
         fetchAllUsersCount()
       ]);
     } catch (error) {
+      console.error('Error loading admin data:', error);
       toast({ title: "Error cargando datos del admin", description: error.message, variant: "destructive" });
     } finally {
       setIsLoading(false);
@@ -69,44 +89,58 @@ const AdminDashboard = () => {
   }, [user, authLoading, navigate, fetchData]);
 
   const fetchAllTagsWithDetails = async () => {
-    const { data: tagsData, error: tagsError } = await supabase
-      .from('tags')
-      .select(`
-        id, 
-        code, 
-        activated, 
-        created_at, 
-        pet_id,
-        user_id,
-        pets:pet_id (id, name),
-        users:user_id (email) 
-      `)
-      .order('created_at', { ascending: false });
+    try {
+      const { data: tagsData, error: tagsError } = await supabase
+        .from('tags')
+        .select(`
+          id, 
+          code, 
+          activated, 
+          created_at, 
+          pet_id,
+          user_id,
+          pets:pet_id (id, name),
+          users:user_id (email) 
+        `)
+        .order('created_at', { ascending: false });
 
-    if (tagsError) {
-      toast({ title: "Error cargando tags", description: tagsError.message, variant: "destructive" });
+      if (tagsError) {
+        console.error('Error fetching tags:', tagsError);
+        toast({ title: "Error cargando tags", description: tagsError.message, variant: "destructive" });
+        setTagsWithDetails([]);
+        return;
+      }
+      
+      setTagsWithDetails(tagsData || []);
+    } catch (error) {
+      console.error('Unexpected error fetching tags:', error);
+      toast({ title: "Error inesperado", description: "Error al cargar las Plakitas", variant: "destructive" });
       setTagsWithDetails([]);
-      return;
     }
-    
-    setTagsWithDetails(tagsData || []);
   };
 
   const fetchAllPetsCount = async () => {
-    const { count, error } = await supabase
-      .from('pets')
-      .select('id', { count: 'exact', head: true });
-    if (error) {
-      toast({ title: "Error contando mascotas", description: error.message, variant: "destructive" });
+    try {
+      const { count, error } = await supabase
+        .from('pets')
+        .select('id', { count: 'exact', head: true });
+      
+      if (error) {
+        console.error('Error counting pets:', error);
+        toast({ title: "Error contando mascotas", description: error.message, variant: "destructive" });
+        setAllPetsCount(0);
+      } else {
+        setAllPetsCount(count || 0);
+      }
+    } catch (error) {
+      console.error('Unexpected error counting pets:', error);
       setAllPetsCount(0);
-    } else {
-      setAllPetsCount(count || 0);
     }
   };
   
   const fetchAllUsersCount = async () => {
     try {
-      // Fallback: count unique user_ids from tags table
+      // Count unique user IDs from tags table as fallback
       const { data: tagsData, error: tagsError } = await supabase
         .from('tags')
         .select('user_id')
@@ -124,7 +158,7 @@ const AdminDashboard = () => {
       setAllUsersCount(0);
       toast({
         title: "Advertencia",
-        description: "No se pudo obtener el conteo exacto de usuarios. Mostrando 0.",
+        description: "No se pudo obtener el conteo exacto de usuarios.",
         variant: "destructive"
       });
     }
@@ -197,6 +231,26 @@ const AdminDashboard = () => {
           <p className="text-white/80 text-lg">
             Gestiona Plakitas, visualiza estadísticas y supervisa la plataforma.
           </p>
+          
+          {databaseStatus && (
+            <div className="mt-4 p-3 bg-white/10 rounded-lg">
+              <p className="text-sm text-white/70">Estado de la base de datos:</p>
+              {Object.entries(databaseStatus).map(([test, result]) => (
+                <span key={test} className={`inline-block mr-3 text-xs px-2 py-1 rounded ${result.success ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
+                  {test}: {result.success ? '✓' : '✗'}
+                </span>
+              ))}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={testDatabase}
+                className="ml-2 text-white hover:bg-white/20"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Probar
+              </Button>
+            </div>
+          )}
         </motion.div>
 
         <AdminStatsGrid stats={statsData} />

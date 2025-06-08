@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -63,77 +62,84 @@ const ActivateTagPage = () => {
 
     const upperCaseTagCode = currentTagCode.trim().toUpperCase();
 
-    // Fetch tag first
-    const { data: fetchedTagData, error: tagError } = await supabase
-      .from('tags')
-      .select('id, code, activated, user_id, pet_id')
-      .eq('code', upperCaseTagCode)
-      .single();
-
-    if (tagError && tagError.code !== 'PGRST116') { // PGRST116: No rows found
-      setIsFetchingTag(false);
-      setIsLoading(false);
-      toast({ title: "Error", description: `Error buscando Plakita: ${tagError.message}`, variant: "destructive" });
-      return;
-    }
-    
-    if (!fetchedTagData) {
-      setIsFetchingTag(false);
-      setIsLoading(false);
-      toast({ title: "Plakita no encontrada", description: `No se encontró una Plakita con el código "${upperCaseTagCode}". Verifica el código o contacta soporte.`, variant: "destructive" });
-      return;
-    }
-
-    setTagInfo(fetchedTagData);
-    let associatedPet = null;
-
-    // If tag has a pet_id, fetch the pet
-    if (fetchedTagData.pet_id) {
-      const { data: petData, error: petError } = await supabase
-        .from('pets')
-        .select('id, name, type, breed, owner_name, owner_contact, notes, user_id, qr_activated')
-        .eq('id', fetchedTagData.pet_id)
+    try {
+      // Fetch tag first
+      const { data: fetchedTagData, error: tagError } = await supabase
+        .from('tags')
+        .select('id, code, activated, user_id, pet_id')
+        .eq('code', upperCaseTagCode)
         .single();
 
-      if (petError && petError.code !== 'PGRST116') {
-        toast({ title: "Error", description: `Error buscando mascota asociada: ${petError.message}`, variant: "destructive" });
-      } else if (petData) {
-        associatedPet = petData;
+      if (tagError && tagError.code !== 'PGRST116') {
+        throw tagError;
       }
-    }
-    
-    setIsFetchingTag(false);
-    setIsLoading(false);
+      
+      if (!fetchedTagData) {
+        toast({ title: "Plakita no encontrada", description: `No se encontró una Plakita con el código "${upperCaseTagCode}". Verifica el código o contacta soporte.`, variant: "destructive" });
+        return;
+      }
 
-    // Logic to handle different states based on tag and pet info
-    if (fetchedTagData.activated && fetchedTagData.pet_id && associatedPet) {
-      const petOwnerId = associatedPet.user_id;
-      if (!user || (user && user.id !== petOwnerId)) { // If not owner, redirect to public profile
-        navigate(`/public/pet/${fetchedTagData.pet_id}`);
-        return;
+      setTagInfo(fetchedTagData);
+      let associatedPet = null;
+
+      // If tag has a pet_id, fetch the pet
+      if (fetchedTagData.pet_id) {
+        const { data: petData, error: petError } = await supabase
+          .from('pets')
+          .select('id, name, type, breed, owner_name, owner_contact, notes, user_id, qr_activated')
+          .eq('id', fetchedTagData.pet_id)
+          .single();
+
+        if (petError && petError.code !== 'PGRST116') {
+          console.error('Error fetching pet:', petError);
+        } else if (petData) {
+          associatedPet = petData;
+        }
       }
-      // Owner is viewing, allow edit
-      setPetInfo(associatedPet);
-      setFormData({
-        name: associatedPet.name || '', type: associatedPet.type || '', breed: associatedPet.breed || '',
-        ownerName: associatedPet.owner_name || user?.user_metadata?.full_name || '',
-        contactInfo: associatedPet.owner_contact || user?.email || '',
-        notes: associatedPet.notes || ''
-      });
-      setShowPetForm(true);
-      toast({ title: "Plakita Encontrada", description: `Editando información para ${associatedPet.name}.`, variant: "default" });
-    } else if (fetchedTagData.user_id && user && fetchedTagData.user_id !== user.id) { // Tag claimed by another user
-      toast({ title: "Plakita Reclamada", description: "Esta Plakita ya ha sido reclamada por otro usuario.", variant: "destructive" });
-    } else { // Tag is available for activation or completion by current user
-      if (!user) { // User must be logged in
-        toast({ title: "Autenticación Requerida", description: "Inicia sesión para activar esta Plakita.", variant: "default" });
-        const redirectTo = location.pathname + location.search;
-        navigate(`/login?redirect=${encodeURIComponent(redirectTo)}`);
-        return;
+      
+      // Logic to handle different states based on tag and pet info
+      if (fetchedTagData.activated && fetchedTagData.pet_id && associatedPet) {
+        const petOwnerId = associatedPet.user_id;
+        if (!user || (user && user.id !== petOwnerId)) {
+          navigate(`/public/pet/${fetchedTagData.pet_id}`);
+          return;
+        }
+        // Owner is viewing, allow edit
+        setPetInfo(associatedPet);
+        setFormData({
+          name: associatedPet.name || '', 
+          type: associatedPet.type || '', 
+          breed: associatedPet.breed || '',
+          ownerName: associatedPet.owner_name || user?.user_metadata?.full_name || '',
+          contactInfo: associatedPet.owner_contact || user?.email || '',
+          notes: associatedPet.notes || ''
+        });
+        setShowPetForm(true);
+        toast({ title: "Plakita Encontrada", description: `Editando información para ${associatedPet.name}.`, variant: "default" });
+      } else if (fetchedTagData.user_id && user && fetchedTagData.user_id !== user.id) {
+        toast({ title: "Plakita Reclamada", description: "Esta Plakita ya ha sido reclamada por otro usuario.", variant: "destructive" });
+      } else {
+        if (!user) {
+          toast({ title: "Autenticación Requerida", description: "Inicia sesión para activar esta Plakita.", variant: "default" });
+          const redirectTo = location.pathname + location.search;
+          navigate(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+          return;
+        }
+        setShowPetForm(true); 
+        setFormData({ 
+          name: '', type: '', breed: '', 
+          ownerName: user.user_metadata?.full_name || '', 
+          contactInfo: user.email || '', 
+          notes: '' 
+        });
+        toast({ title: "Plakita Disponible", description: `Plakita ${upperCaseTagCode} lista para activar. Completa los datos de tu mascota.`, variant: "default" });
       }
-      setShowPetForm(true); 
-      setFormData({ name: '', type: '', breed: '', ownerName: user.user_metadata?.full_name || '', contactInfo: user.email || '', notes: '' });
-      toast({ title: "Plakita Disponible", description: `Plakita ${upperCaseTagCode} lista para activar. Completa los datos de tu mascota.`, variant: "default" });
+    } catch (error) {
+      console.error('Error fetching tag info:', error);
+      toast({ title: "Error", description: `Error buscando Plakita: ${error.message}`, variant: "destructive" });
+    } finally {
+      setIsFetchingTag(false);
+      setIsLoading(false);
     }
   };
 
@@ -143,17 +149,24 @@ const ActivateTagPage = () => {
 
     if (!user) {
       toast({ title: "Error", description: "Debes estar logueado.", variant: "destructive" });
-      setIsSubmitting(false); return;
+      setIsSubmitting(false); 
+      return;
     }
     if (!tagInfo) {
       toast({ title: "Error", description: "Información de la Plakita no disponible. Intenta buscarla de nuevo.", variant: "destructive" });
-      setIsSubmitting(false); return;
+      setIsSubmitting(false); 
+      return;
     }
 
     const petPayload = {
-      name: formData.name, type: formData.type, breed: formData.breed,
-      owner_name: formData.ownerName, owner_contact: formData.contactInfo,
-      notes: formData.notes, user_id: user.id, qr_activated: true
+      name: formData.name, 
+      type: formData.type, 
+      breed: formData.breed,
+      owner_name: formData.ownerName, 
+      owner_contact: formData.contactInfo,
+      notes: formData.notes, 
+      user_id: user.id, 
+      qr_activated: true
     };
 
     try {
@@ -178,14 +191,23 @@ const ActivateTagPage = () => {
 
       const { error: updateTagError } = await supabase
         .from('tags')
-        .update({ pet_id: currentPetId, activated: true, activated_at: new Date().toISOString(), user_id: user.id })
+        .update({ 
+          pet_id: currentPetId, 
+          activated: true, 
+          activated_at: new Date().toISOString(), 
+          user_id: user.id 
+        })
         .eq('id', tagInfo.id);
       if (updateTagError) throw updateTagError;
 
-      toast({ title: petInfo ? "¡Plakita Actualizada!" : "¡Plakita Activada!", description: `Operación exitosa para ${formData.name}.` });
+      toast({ 
+        title: petInfo ? "¡Plakita Actualizada!" : "¡Plakita Activada!", 
+        description: `Operación exitosa para ${formData.name}.` 
+      });
       navigate(`/dashboard`); 
 
     } catch (error) {
+      console.error('Error submitting pet info:', error);
       toast({ title: "Error en la operación", description: error.message, variant: "destructive" });
     } finally {
       setIsSubmitting(false);

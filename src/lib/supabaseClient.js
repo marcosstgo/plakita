@@ -8,6 +8,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true
+  },
+  db: {
+    schema: 'public'
+  },
+  global: {
+    headers: {
+      'x-my-custom-header': 'plakita-app'
+    }
   }
 });
 
@@ -18,6 +26,7 @@ export const checkDatabaseConnection = async () => {
     if (error) throw error;
     return { connected: true, error: null };
   } catch (error) {
+    console.error('Database connection error:', error);
     return { connected: false, error: error.message };
   }
 };
@@ -37,4 +46,55 @@ export const verifyDatabaseSchema = async () => {
   }
   
   return results;
+};
+
+// Helper function to test specific queries
+export const testDatabaseQueries = async () => {
+  const tests = {};
+  
+  try {
+    // Test tags query
+    const { data: tagsData, error: tagsError } = await supabase
+      .from('tags')
+      .select('id, code, activated, user_id, pet_id, created_at')
+      .limit(1);
+    
+    tests.tags = { success: !tagsError, error: tagsError?.message };
+  } catch (error) {
+    tests.tags = { success: false, error: error.message };
+  }
+  
+  try {
+    // Test pets query
+    const { data: petsData, error: petsError } = await supabase
+      .from('pets')
+      .select('id, name, type, breed, owner_name, owner_contact, notes, user_id, qr_activated')
+      .limit(1);
+    
+    tests.pets = { success: !petsError, error: petsError?.message };
+  } catch (error) {
+    tests.pets = { success: false, error: error.message };
+  }
+  
+  try {
+    // Test join query
+    const { data: joinData, error: joinError } = await supabase
+      .from('tags')
+      .select(`
+        id, 
+        code, 
+        activated, 
+        user_id,
+        pet_id,
+        pets:pet_id (id, name),
+        users:user_id (email)
+      `)
+      .limit(1);
+    
+    tests.joins = { success: !joinError, error: joinError?.message };
+  } catch (error) {
+    tests.joins = { success: false, error: error.message };
+  }
+  
+  return tests;
 };

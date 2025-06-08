@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, Tag, AlertTriangle } from 'lucide-react';
@@ -25,63 +24,67 @@ const Dashboard = () => {
     }
     setIsLoading(true);
 
-    const { data: tagsData, error: tagsError } = await supabase
-      .from('tags')
-      .select('id, code, activated, pet_id, user_id')
-      .eq('user_id', user.id)
-      .not('pet_id', 'is', null);
+    try {
+      // Fetch tags associated with the user that have a pet_id
+      const { data: tagsData, error: tagsError } = await supabase
+        .from('tags')
+        .select('id, code, activated, pet_id, user_id')
+        .eq('user_id', user.id)
+        .not('pet_id', 'is', null);
 
-    if (tagsError) {
-      toast({ title: "Error cargando Plakitas", description: tagsError.message, variant: "destructive" });
+      if (tagsError) {
+        throw tagsError;
+      }
+
+      if (!tagsData || tagsData.length === 0) {
+        setPetsWithTags([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Extract pet_ids and fetch corresponding pets
+      const petIds = tagsData.map(tag => tag.pet_id).filter(id => id !== null);
+      
+      if (petIds.length === 0) {
+        setPetsWithTags([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const { data: petsData, error: petsError } = await supabase
+        .from('pets')
+        .select('id, name, type, breed, owner_name, owner_contact, notes, qr_activated, user_id')
+        .in('id', petIds)
+        .eq('user_id', user.id);
+      
+      if (petsError) {
+        throw petsError;
+      }
+
+      // Combine tags and pets data
+      const combinedData = petsData.map(pet => {
+        const tag = tagsData.find(t => t.pet_id === pet.id);
+        if (!tag) return null;
+        return {
+          ...pet,
+          tags: {
+            id: tag.id,
+            code: tag.code,
+            activated: tag.activated,
+            pet_id: tag.pet_id,
+            user_id: tag.user_id
+          }
+        };
+      }).filter(item => item !== null);
+
+      setPetsWithTags(combinedData);
+    } catch (error) {
+      console.error('Error loading pets and tags:', error);
+      toast({ title: "Error cargando datos", description: error.message, variant: "destructive" });
       setPetsWithTags([]);
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    if (!tagsData || tagsData.length === 0) {
-      setPetsWithTags([]);
-      setIsLoading(false);
-      return;
-    }
-
-    const petIds = tagsData.map(tag => tag.pet_id).filter(id => id !== null);
-    
-    if (petIds.length === 0) {
-      setPetsWithTags([]);
-      setIsLoading(false);
-      return;
-    }
-
-    const { data: petsData, error: petsError } = await supabase
-      .from('pets')
-      .select('id, name, type, breed, owner_name, owner_contact, notes, qr_activated, user_id')
-      .in('id', petIds)
-      .eq('user_id', user.id); 
-    
-    if (petsError) {
-      toast({ title: "Error cargando Mascotas", description: petsError.message, variant: "destructive" });
-      setPetsWithTags([]);
-      setIsLoading(false);
-      return;
-    }
-
-    const combinedData = petsData.map(pet => {
-      const tag = tagsData.find(t => t.pet_id === pet.id);
-      if (!tag) return null; 
-      return {
-        ...pet, 
-        tags: { 
-          id: tag.id,
-          code: tag.code,
-          activated: tag.activated,
-          pet_id: tag.pet_id,
-          user_id: tag.user_id
-        }
-      };
-    }).filter(item => item !== null); 
-
-    setPetsWithTags(combinedData);
-    setIsLoading(false);
   }, [user]);
 
   useEffect(() => {
@@ -104,17 +107,18 @@ const Dashboard = () => {
     const tagIdToUpdate = itemToDelete.tags.id;
 
     try {
+      // Desvincular el tag de la mascota y desactivarlo
       const { error: tagUpdateError } = await supabase
         .from('tags')
-        .update({ pet_id: null, activated: false, user_id: null }) // También user_id a null para que esté disponible
+        .update({ pet_id: null, activated: false, user_id: null }) 
         .eq('id', tagIdToUpdate)
         .eq('user_id', user.id);
 
       if (tagUpdateError) {
-        toast({ title: "Error desvinculando Plakita", description: tagUpdateError.message, variant: "destructive" });
-        return; 
+        throw tagUpdateError;
       }
 
+      // Eliminar la mascota
       const { error: petDeleteError } = await supabase
         .from('pets')
         .delete()
@@ -122,19 +126,22 @@ const Dashboard = () => {
         .eq('user_id', user.id);
 
       if (petDeleteError) {
-        toast({ title: "Error eliminando mascota", description: petDeleteError.message, variant: "destructive" });
-      } else {
-        toast({ title: "Éxito", description: `Mascota ${itemToDelete.name} eliminada y Plakita ${itemToDelete.tags.code} desvinculada y disponible.` });
-        loadPetsAndTags(); 
+        throw petDeleteError;
       }
+
+      toast({ 
+        title: "Éxito", 
+        description: `Mascota ${itemToDelete.name} eliminada y Plakita ${itemToDelete.tags.code} desvinculada.` 
+      });
+      loadPetsAndTags(); 
     } catch (error) {
+      console.error('Error deleting pet:', error);
       toast({ title: "Error en el proceso de eliminación", description: error.message, variant: "destructive" });
     } finally {
       setIsConfirmDeleteDialogOpen(false);
       setItemToDelete(null);
     }
   };
-  
 
   if (isLoading) {
     return (
@@ -221,7 +228,7 @@ const Dashboard = () => {
             </DialogTitle>
             <DialogDescription className="text-gray-300">
               ¿Estás seguro de que quieres eliminar a <span className="font-semibold">{itemToDelete?.name}</span>? 
-              Su Plakita asociada ({itemToDelete?.tags?.code}) será desvinculada y quedará disponible. Esta acción no se puede deshacer.
+              Su Plakita asociada ({itemToDelete?.tags?.code}) será desvinculada. Esta acción no se puede deshacer.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="sm:justify-end gap-2">
@@ -236,7 +243,6 @@ const Dashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 };
