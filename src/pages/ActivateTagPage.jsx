@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
 import { getTagByCode, activateTagWithPet } from '@/lib/supabaseClient';
+import { validatePetForm, sanitizePetFormData } from '@/components/forms/PetFormValidation';
+import FormErrorDisplay from '@/components/forms/FormErrorDisplay';
 
 const ActivateTagPage = () => {
   const { tagCode: tagCodeFromParams } = useParams();
@@ -25,6 +27,7 @@ const ActivateTagPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFetchingTag, setIsFetchingTag] = useState(false);
   const [showPetForm, setShowPetForm] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
 
   const [formData, setFormData] = useState({
     name: '', type: '', breed: '', ownerName: '', contactInfo: '', notes: ''
@@ -59,6 +62,7 @@ const ActivateTagPage = () => {
     setPetInfo(null); 
     setTagInfo(null); 
     setShowPetForm(false);
+    setFormErrors({});
 
     const upperCaseTagCode = currentTagCode.trim().toUpperCase();
 
@@ -167,7 +171,23 @@ const ActivateTagPage = () => {
 
   const handleSubmitPetInfo = async (e) => {
     e.preventDefault();
+    
+    // Limpiar y validar datos del formulario
+    const sanitizedData = sanitizePetFormData(formData);
+    const validation = validatePetForm(sanitizedData);
+    
+    if (!validation.isValid) {
+      setFormErrors(validation.errors);
+      toast({
+        title: "Errores en el formulario",
+        description: "Por favor, corrige los errores antes de continuar.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
+    setFormErrors({});
 
     if (!user) {
       toast({ title: "Error", description: "Debes estar logueado.", variant: "destructive" });
@@ -182,15 +202,17 @@ const ActivateTagPage = () => {
 
     const petPayload = {
       id: petInfo?.id || null,
-      name: formData.name, 
-      type: formData.type, 
-      breed: formData.breed,
-      owner_name: formData.ownerName, 
-      owner_contact: formData.contactInfo,
-      notes: formData.notes
+      name: sanitizedData.name, 
+      type: sanitizedData.type, 
+      breed: sanitizedData.breed,
+      owner_name: sanitizedData.ownerName, 
+      owner_contact: sanitizedData.contactInfo,
+      notes: sanitizedData.notes
     };
 
     try {
+      console.log('🐕 Activando tag con datos:', petPayload);
+      
       const result = await activateTagWithPet(tagInfo.id, petPayload, user.id);
       
       if (!result.success) {
@@ -199,13 +221,27 @@ const ActivateTagPage = () => {
 
       toast({ 
         title: petInfo ? "¡Plakita Actualizada!" : "¡Plakita Activada!", 
-        description: `Operación exitosa para ${formData.name}.` 
+        description: `Operación exitosa para ${sanitizedData.name}.` 
       });
       navigate(`/dashboard`); 
 
     } catch (error) {
       console.error('Error submitting pet info:', error);
-      toast({ title: "Error en la operación", description: error.message, variant: "destructive" });
+      
+      // Manejar errores específicos
+      if (error.message.includes('row-level security')) {
+        toast({ 
+          title: "Error de permisos", 
+          description: "No tienes permisos para realizar esta acción.", 
+          variant: "destructive" 
+        });
+      } else {
+        toast({ 
+          title: "Error en la operación", 
+          description: error.message, 
+          variant: "destructive" 
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -285,15 +321,48 @@ const ActivateTagPage = () => {
                   {tagInfo.activated && !petInfo && tagInfo.pet_id && <p className="text-xs text-yellow-300">Esta Plakita está activada pero la mascota asociada no se encontró. Completa los datos para re-vincular.</p>}
                   {!tagInfo.activated && <p className="text-xs text-yellow-300">Plakita lista para activar. Completa los datos de tu mascota.</p>}
                 </div>
+                
+                <FormErrorDisplay errors={formErrors} className="mb-4" />
+                
                 <form onSubmit={handleSubmitPetInfo} className="space-y-6">
                   <div>
-                    <Label htmlFor="name" className="text-purple-300 flex items-center"><PawPrint className="h-4 w-4 mr-2" /> Nombre de la Mascota</Label>
-                    <Input id="name" name="name" type="text" placeholder="Ej: Max, Luna" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50" required />
+                    <Label htmlFor="name" className="text-purple-300 flex items-center">
+                      <PawPrint className="h-4 w-4 mr-2" /> Nombre de la Mascota
+                    </Label>
+                    <Input 
+                      id="name" 
+                      name="name" 
+                      type="text" 
+                      placeholder="Ej: Max, Luna" 
+                      value={formData.name} 
+                      onChange={(e) => {
+                        setFormData({ ...formData, name: e.target.value });
+                        setFormErrors(prev => ({ ...prev, name: undefined }));
+                      }} 
+                      className={`mt-1 bg-white/10 border-white/30 placeholder:text-white/50 ${
+                        formErrors.name ? 'border-red-500' : ''
+                      }`}
+                      required 
+                    />
                   </div>
                   <div>
-                    <Label htmlFor="type" className="text-purple-300 flex items-center"><PawPrint className="h-4 w-4 mr-2" /> Tipo de Mascota</Label>
-                    <Select name="type" value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})} required>
-                      <SelectTrigger className="mt-1 w-full bg-white/10 border-white/30 placeholder:text-white/50"><SelectValue placeholder="Selecciona el tipo" /></SelectTrigger>
+                    <Label htmlFor="type" className="text-purple-300 flex items-center">
+                      <PawPrint className="h-4 w-4 mr-2" /> Tipo de Mascota
+                    </Label>
+                    <Select 
+                      name="type" 
+                      value={formData.type} 
+                      onValueChange={(value) => {
+                        setFormData({...formData, type: value});
+                        setFormErrors(prev => ({ ...prev, type: undefined }));
+                      }} 
+                      required
+                    >
+                      <SelectTrigger className={`mt-1 w-full bg-white/10 border-white/30 placeholder:text-white/50 ${
+                        formErrors.type ? 'border-red-500' : ''
+                      }`}>
+                        <SelectValue placeholder="Selecciona el tipo" />
+                      </SelectTrigger>
                       <SelectContent className="bg-gray-800 border-purple-500 text-white">
                         <SelectItem value="perro" className="hover:bg-purple-600">Perro</SelectItem>
                         <SelectItem value="gato" className="hover:bg-purple-600">Gato</SelectItem>
@@ -304,25 +373,84 @@ const ActivateTagPage = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="breed" className="text-purple-300 flex items-center"><PawPrint className="h-4 w-4 mr-2" /> Raza (Opcional)</Label>
-                    <Input id="breed" name="breed" type="text" placeholder="Ej: Labrador, Siamés" value={formData.breed} onChange={(e) => setFormData({ ...formData, breed: e.target.value })} className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50" />
+                    <Label htmlFor="breed" className="text-purple-300 flex items-center">
+                      <PawPrint className="h-4 w-4 mr-2" /> Raza (Opcional)
+                    </Label>
+                    <Input 
+                      id="breed" 
+                      name="breed" 
+                      type="text" 
+                      placeholder="Ej: Labrador, Siamés" 
+                      value={formData.breed} 
+                      onChange={(e) => setFormData({ ...formData, breed: e.target.value })} 
+                      className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50" 
+                    />
                   </div>
                   <hr className="border-white/20" />
                   <div>
-                    <Label htmlFor="ownerName" className="text-purple-300 flex items-center"><UserCircle className="h-4 w-4 mr-2" /> Nombre del Dueño</Label>
-                    <Input id="ownerName" name="ownerName" type="text" placeholder="Tu nombre completo" value={formData.ownerName} onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })} className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50" required />
+                    <Label htmlFor="ownerName" className="text-purple-300 flex items-center">
+                      <UserCircle className="h-4 w-4 mr-2" /> Nombre del Dueño
+                    </Label>
+                    <Input 
+                      id="ownerName" 
+                      name="ownerName" 
+                      type="text" 
+                      placeholder="Tu nombre completo" 
+                      value={formData.ownerName} 
+                      onChange={(e) => {
+                        setFormData({ ...formData, ownerName: e.target.value });
+                        setFormErrors(prev => ({ ...prev, ownerName: undefined }));
+                      }} 
+                      className={`mt-1 bg-white/10 border-white/30 placeholder:text-white/50 ${
+                        formErrors.ownerName ? 'border-red-500' : ''
+                      }`}
+                      required 
+                    />
                   </div>
                   <div>
-                    <Label htmlFor="contactInfo" className="text-purple-300 flex items-center"><Phone className="h-4 w-4 mr-2" /> Información de Contacto del Dueño</Label>
-                    <Input id="contactInfo" name="contactInfo" type="text" placeholder="Tu teléfono o email principal" value={formData.contactInfo} onChange={(e) => setFormData({ ...formData, contactInfo: e.target.value })} className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50" required />
+                    <Label htmlFor="contactInfo" className="text-purple-300 flex items-center">
+                      <Phone className="h-4 w-4 mr-2" /> Información de Contacto del Dueño
+                    </Label>
+                    <Input 
+                      id="contactInfo" 
+                      name="contactInfo" 
+                      type="text" 
+                      placeholder="Tu teléfono o email principal" 
+                      value={formData.contactInfo} 
+                      onChange={(e) => {
+                        setFormData({ ...formData, contactInfo: e.target.value });
+                        setFormErrors(prev => ({ ...prev, contactInfo: undefined }));
+                      }} 
+                      className={`mt-1 bg-white/10 border-white/30 placeholder:text-white/50 ${
+                        formErrors.contactInfo ? 'border-red-500' : ''
+                      }`}
+                      required 
+                    />
                   </div>
                   <hr className="border-white/20" />
                   <div>
-                    <Label htmlFor="notes" className="text-purple-300 flex items-center"><Edit3 className="h-4 w-4 mr-2" /> Notas Adicionales (Opcional)</Label>
-                    <Textarea id="notes" name="notes" placeholder="Alergias, medicación, etc." value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50 min-h-[100px]" />
+                    <Label htmlFor="notes" className="text-purple-300 flex items-center">
+                      <Edit3 className="h-4 w-4 mr-2" /> Notas Adicionales (Opcional)
+                    </Label>
+                    <Textarea 
+                      id="notes" 
+                      name="notes" 
+                      placeholder="Alergias, medicación, etc." 
+                      value={formData.notes} 
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })} 
+                      className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50 min-h-[100px]" 
+                    />
                   </div>
-                  <Button type="submit" className="w-full bg-white text-purple-600 hover:bg-purple-200 font-bold py-3 text-lg" disabled={isSubmitting}>
-                    {isSubmitting ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mr-2"></div> : ((tagInfo?.activated && petInfo) ? <CheckCircle className="h-5 w-5 mr-2" /> : <Tag className="h-5 w-5 mr-2" />)}
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-white text-purple-600 hover:bg-purple-200 font-bold py-3 text-lg" 
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mr-2"></div>
+                    ) : (
+                      ((tagInfo?.activated && petInfo) ? <CheckCircle className="h-5 w-5 mr-2" /> : <Tag className="h-5 w-5 mr-2" />)
+                    )}
                     {submitButtonText}
                   </Button>
                 </form>

@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabaseClient';
 import QRCode from 'qrcode';
+import { validateTagCode, generateTagCode } from '@/components/forms/PetFormValidation';
+import FormErrorDisplay from '@/components/forms/FormErrorDisplay';
 
 // ID CORRECTO del usuario admin santiago.marcos@gmail.com obtenido de la consulta SQL
 export const ADMIN_USER_ID = '3d4b3b56-fba6-4d76-866c-f38551c7a6c4';
@@ -40,6 +42,7 @@ const AdminDashboard = () => {
   // Estados del formulario
   const [newTagCode, setNewTagCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
   
   // Estados de verificación
   const [databaseStatus, setDatabaseStatus] = useState(null);
@@ -292,42 +295,50 @@ const AdminDashboard = () => {
 
   // Generar código aleatorio
   const generateRandomCode = () => {
-    const prefix = 'PLK-';
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = prefix;
-    for (let i = 0; i < 6; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    setNewTagCode(result);
+    const newCode = generateTagCode();
+    setNewTagCode(newCode);
+    setFormErrors({});
   };
 
   // Crear nuevo tag
   const handleCreateTag = async (e) => {
     e.preventDefault();
     
-    if (!newTagCode.trim()) {
-      toast({ 
-        title: "Error", 
-        description: "El código del tag no puede estar vacío.", 
-        variant: "destructive" 
-      });
+    // Validar formulario
+    const validation = validateTagCode(newTagCode);
+    if (!validation.isValid) {
+      setFormErrors(validation.errors);
       return;
     }
 
     setIsSubmitting(true);
+    setFormErrors({});
     
     try {
+      console.log('🏷️ Creando tag con datos:', {
+        code: newTagCode.trim().toUpperCase(),
+        activated: false,
+        user_id: user.id,
+        created_at: new Date().toISOString()
+      });
+
       const { data, error } = await supabase
         .from('tags')
         .insert({ 
           code: newTagCode.trim().toUpperCase(), 
           activated: false,
+          user_id: user.id, // Asignar al usuario actual (admin)
           created_at: new Date().toISOString()
         })
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error creando tag:', error);
+        throw error;
+      }
+
+      console.log('✅ Tag creado exitosamente:', data);
 
       toast({ 
         title: "Tag Creado", 
@@ -341,11 +352,23 @@ const AdminDashboard = () => {
       
     } catch (error) {
       console.error('Error creating tag:', error);
-      toast({ 
-        title: "Error creando tag", 
-        description: error.message, 
-        variant: "destructive" 
-      });
+      
+      // Manejar errores específicos
+      if (error.message.includes('row-level security')) {
+        toast({ 
+          title: "Error de permisos", 
+          description: "No tienes permisos para crear tags. Verifica que seas administrador.", 
+          variant: "destructive" 
+        });
+      } else if (error.message.includes('duplicate key')) {
+        setFormErrors({ code: 'Este código ya existe. Genera uno nuevo.' });
+      } else {
+        toast({ 
+          title: "Error creando tag", 
+          description: error.message, 
+          variant: "destructive" 
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -685,6 +708,8 @@ const AdminDashboard = () => {
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreateTag} className="space-y-6 mt-4">
+            <FormErrorDisplay errors={formErrors} />
+            
             <div>
               <Label htmlFor="tagCode" className="text-purple-300 font-medium">
                 Código Único de la Plakita
@@ -693,10 +718,15 @@ const AdminDashboard = () => {
                 <Input
                   id="tagCode"
                   value={newTagCode}
-                  onChange={(e) => setNewTagCode(e.target.value.toUpperCase())}
+                  onChange={(e) => {
+                    setNewTagCode(e.target.value.toUpperCase());
+                    setFormErrors({});
+                  }}
                   placeholder="Ej: PLK-XYZ123"
                   required
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500"
+                  className={`bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 ${
+                    formErrors.code ? 'border-red-500' : ''
+                  }`}
                   autoFocus
                 />
                 <Button 
@@ -715,7 +745,11 @@ const AdminDashboard = () => {
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => setIsCreateTagDialogOpen(false)} 
+                onClick={() => {
+                  setIsCreateTagDialogOpen(false);
+                  setFormErrors({});
+                  setNewTagCode('');
+                }} 
                 className="border-gray-500 text-gray-300 hover:bg-gray-700"
               >
                 Cancelar
