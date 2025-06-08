@@ -28,20 +28,24 @@ const PublicPetProfile = () => {
     setIsLoading(true);
     
     try {
+      console.log('🔍 Cargando perfil público para pet ID:', petId);
       const result = await getPublicPetById(petId);
       
       if (!result.success || !result.data) {
+        console.log('❌ No se encontró la mascota o no está activada');
         setPet(null);
         setIsLoading(false);
         return;
       }
       
       const petData = result.data;
+      console.log('✅ Mascota encontrada:', petData);
       setPet(petData);
       
       // Extraer información del tag si existe
       if (petData.tags && petData.tags.length > 0) {
         setTag(petData.tags[0]);
+        console.log('🏷️ Tag asociado:', petData.tags[0]);
       }
       
     } catch (error) {
@@ -104,6 +108,7 @@ const PublicPetProfile = () => {
     );
   }
 
+  // CAMBIO: Verificar tanto qr_activated como tag.activated para mostrar el perfil
   if (!pet.qr_activated || !tag?.activated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 px-4">

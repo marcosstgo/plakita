@@ -300,7 +300,7 @@ const AdminDashboard = () => {
     setFormErrors({});
   };
 
-  // Crear nuevo tag
+  // Crear nuevo tag - CORREGIDO: No asignar user_id automáticamente
   const handleCreateTag = async (e) => {
     e.preventDefault();
     
@@ -315,10 +315,10 @@ const AdminDashboard = () => {
     setFormErrors({});
     
     try {
-      console.log('🏷️ Creando tag con datos:', {
+      console.log('🏷️ Creando tag sin asignar usuario:', {
         code: newTagCode.trim().toUpperCase(),
         activated: false,
-        user_id: user.id,
+        user_id: null, // CAMBIO: No asignar usuario automáticamente
         created_at: new Date().toISOString()
       });
 
@@ -327,7 +327,7 @@ const AdminDashboard = () => {
         .insert({ 
           code: newTagCode.trim().toUpperCase(), 
           activated: false,
-          user_id: user.id, // Asignar al usuario actual (admin)
+          user_id: null, // CAMBIO: Dejar sin asignar para que el cliente lo reclame
           created_at: new Date().toISOString()
         })
         .select()
@@ -338,11 +338,11 @@ const AdminDashboard = () => {
         throw error;
       }
 
-      console.log('✅ Tag creado exitosamente:', data);
+      console.log('✅ Tag creado exitosamente sin usuario asignado:', data);
 
       toast({ 
         title: "Tag Creado", 
-        description: `Tag ${data.code} creado exitosamente.` 
+        description: `Tag ${data.code} creado exitosamente. Listo para ser reclamado por un cliente.` 
       });
       
       setNewTagCode('');
@@ -654,7 +654,7 @@ const AdminDashboard = () => {
                               {tag.users?.email ? (
                                 <span className="text-white/80">{tag.users.email}</span>
                               ) : (
-                                <span className="text-white/50">N/A</span>
+                                <span className="text-white/50">Sin asignar</span>
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-white/70">
@@ -739,6 +739,9 @@ const AdminDashboard = () => {
               </div>
               <p className="text-xs text-gray-400 mt-1.5">
                 Debe ser único. Se recomienda un prefijo (ej. PLK-) seguido de caracteres alfanuméricos.
+              </p>
+              <p className="text-xs text-blue-300 mt-1">
+                ℹ️ El tag se creará sin usuario asignado para que el cliente lo reclame al escanearlo.
               </p>
             </div>
             <DialogFooter className="sm:justify-end gap-2">

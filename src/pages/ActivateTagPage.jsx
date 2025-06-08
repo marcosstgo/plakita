@@ -132,14 +132,15 @@ const ActivateTagPage = () => {
             variant: "destructive" 
           });
         } else {
+          // CAMBIO: Si no hay usuario autenticado, redirigir a registro en lugar de login
           if (!user) {
             toast({ 
-              title: "Autenticación Requerida", 
-              description: "Inicia sesión para activar esta Plakita.", 
+              title: "Registro Requerido", 
+              description: "Regístrate para activar esta Plakita y proteger a tu mascota.", 
               variant: "default" 
             });
             const redirectTo = location.pathname + location.search;
-            navigate(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+            navigate(`/register?redirect=${encodeURIComponent(redirectTo)}`);
             return;
           }
           setShowPetForm(true); 
