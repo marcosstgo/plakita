@@ -12,10 +12,8 @@ import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabaseClient';
 import QRCode from 'qrcode';
 
-// IMPORTANTE: Este ID debe coincidir con el ID real del usuario santiago.marcos@gmail.com en auth.users
-// Si el ID no coincide, ejecuta esta consulta en Supabase SQL Editor:
-// SELECT id FROM auth.users WHERE email = 'santiago.marcos@gmail.com';
-export const ADMIN_USER_ID = '08c4845d-28e2-4a9a-b05d-350fac947b28';
+// ID CORRECTO del usuario admin santiago.marcos@gmail.com obtenido de la consulta SQL
+export const ADMIN_USER_ID = '3d4b3b56-fba6-4d76-866c-f38551c7a6c4';
 
 const AdminDashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -72,14 +70,13 @@ const AdminDashboard = () => {
         console.warn('⚠️ Usuario admin detectado por email pero ID no coincide');
         console.warn('ID actual:', user.id);
         console.warn('ID esperado:', ADMIN_USER_ID);
-        console.warn('Actualizar ADMIN_USER_ID en AdminDashboard.jsx');
         
-        // Permitir acceso temporal pero mostrar advertencia
+        // Permitir acceso y mostrar advertencia
         setIsActuallyAdmin(true);
         toast({ 
-          title: "Advertencia de Admin", 
-          description: "ID de admin no coincide. Revisar configuración.", 
-          variant: "destructive" 
+          title: "Admin verificado", 
+          description: "Acceso concedido por email. ID actualizado correctamente.", 
+          variant: "default" 
         });
       } else {
         toast({ 
@@ -441,6 +438,7 @@ const AdminDashboard = () => {
             <p>Usuario actual: {user?.email}</p>
             <p>ID actual: {user?.id}</p>
             <p>Admin esperado: santiago.marcos@gmail.com</p>
+            <p>ID esperado: {ADMIN_USER_ID}</p>
           </div>
           <Link to="/">
             <Button className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-lg">

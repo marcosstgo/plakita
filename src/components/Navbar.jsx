@@ -4,7 +4,9 @@ import { motion } from 'framer-motion';
 import { Heart, LogOut, User, Home, ShieldCheck, Search, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { ADMIN_USER_ID } from '@/pages/AdminDashboard';
+
+// ID correcto del usuario admin
+const ADMIN_USER_ID = '3d4b3b56-fba6-4d76-866c-f38551c7a6c4';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -15,7 +17,7 @@ const Navbar = () => {
     navigate('/');
   };
 
-  const isUserAdmin = user?.id === ADMIN_USER_ID;
+  const isUserAdmin = user?.id === ADMIN_USER_ID || user?.email === 'santiago.marcos@gmail.com';
 
   return (
     <motion.nav 
