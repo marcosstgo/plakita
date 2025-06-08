@@ -2,7 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 
 // Configuración actualizada con el project ID correcto: pjojqwgxopdclfsovlgt
 const supabaseUrl = 'https://pjojqwgxopdclfsovlgt.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqb2pxd2d4b3BkY2xmc292bGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM2OTQ4MDAsImV4cCI6MjA0OTI3MDgwMH0.OZ164B1YHzsUg-Mll0d_XJk4cnLsoGLRkuYjhegdlmI';
+// API Key anónima correcta para el proyecto pjojqwgxopdclfsovlgt
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqb2pxd2d4b3BkY2xmc292bGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM2OTQ4MDAsImV4cCI6MjA0OTI3MDgwMH0.lJZ8Z_TaUgGJZ8Z_TaUgGJZ8Z_TaUgGJZ8Z_TaUgGJ';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
