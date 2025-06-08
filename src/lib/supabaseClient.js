@@ -105,6 +105,18 @@ export const testDatabaseQueries = async () => {
   } catch (error) {
     tests.pets_basic = { success: false, error: error.message };
   }
+
+  try {
+    // Test de public.users
+    const { data: usersData, error: usersError } = await supabase
+      .from('users')
+      .select('id, email, full_name')
+      .limit(1);
+    
+    tests.users_public = { success: !usersError, error: usersError?.message };
+  } catch (error) {
+    tests.users_public = { success: false, error: error.message };
+  }
   
   try {
     // Test de join solo si los tests básicos funcionan
@@ -115,7 +127,8 @@ export const testDatabaseQueries = async () => {
           id, 
           code, 
           activated,
-          pets:pet_id (id, name)
+          pets:pet_id (id, name),
+          users:user_id (email, full_name)
         `)
         .limit(1);
       
@@ -177,5 +190,43 @@ export const checkRequiredColumns = async () => {
     columnChecks.tags_created_at = { exists: false, error: error.message };
   }
 
+  try {
+    // Verificar tabla public.users
+    const { data: usersTest, error: usersError } = await supabase
+      .from('users')
+      .select('id, email, full_name')
+      .limit(1);
+    
+    columnChecks.public_users = { 
+      exists: !usersError, 
+      error: usersError?.message 
+    };
+  } catch (error) {
+    columnChecks.public_users = { exists: false, error: error.message };
+  }
+
   return columnChecks;
+};
+
+// Helper function to sync current user to public.users
+export const syncCurrentUser = async (user) => {
+  if (!user) return { success: false, error: 'No user provided' };
+  
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .upsert({
+        id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.full_name || user.email,
+        avatar_url: user.user_metadata?.avatar_url,
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    return { success: !error, data, error: error?.message };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };

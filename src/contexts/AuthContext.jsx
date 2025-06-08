@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, syncCurrentUser } from '@/lib/supabaseClient';
 
 const AuthContext = createContext();
 
@@ -18,7 +18,14 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      
+      // Sincronizar usuario con public.users si existe
+      if (currentUser) {
+        await syncCurrentUser(currentUser);
+      }
+      
       setLoading(false);
     };
 
@@ -26,7 +33,14 @@ export const AuthProvider = ({ children }) => {
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setUser(session?.user ?? null);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        
+        // Sincronizar usuario con public.users en cada cambio de auth
+        if (currentUser && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+          await syncCurrentUser(currentUser);
+        }
+        
         setLoading(false);
       }
     );
@@ -42,6 +56,12 @@ export const AuthProvider = ({ children }) => {
       password,
     });
     if (error) throw error;
+    
+    // Sincronizar usuario después del login
+    if (data.user) {
+      await syncCurrentUser(data.user);
+    }
+    
     return data.user;
   };
 
@@ -56,6 +76,13 @@ export const AuthProvider = ({ children }) => {
       }
     });
     if (error) throw error;
+    
+    // La sincronización se hará automáticamente por el trigger
+    // pero también la hacemos aquí por si acaso
+    if (data.user) {
+      await syncCurrentUser(data.user);
+    }
+    
     return data.user;
   };
 
