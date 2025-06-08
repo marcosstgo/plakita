@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Heart, Phone, Mail, MessageCircle, ShieldAlert, QrCode } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabaseClient';
+import { getPublicPetById } from '@/lib/supabaseClient';
 import QRCode from 'qrcode';
 
 const PublicPetProfile = () => {
@@ -14,7 +13,6 @@ const PublicPetProfile = () => {
   const [tag, setTag] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [qrDataUrl, setQrDataUrl] = useState('');
-
 
   useEffect(() => {
     loadPetAndTag();
@@ -26,38 +24,32 @@ const PublicPetProfile = () => {
     }
   }, [pet, tag]);
 
-
   const loadPetAndTag = async () => {
     setIsLoading(true);
-    // Fetch pet data
-    const { data: petData, error: petError } = await supabase
-      .from('pets')
-      .select('*')
-      .eq('id', petId)
-      .maybeSingle(); 
-
-    if (petError) {
-      console.error("Error cargando mascota pública:", petError);
-      setPet(null);
-      setIsLoading(false);
-      return;
-    }
-    setPet(petData);
-
-    // If pet data exists, fetch associated tag data
-    if (petData) {
-      const { data: tagData, error: tagError } = await supabase
-        .from('tags')
-        .select('code, activated') // Only select needed fields
-        .eq('pet_id', petData.id) // Link tag to pet via pet_id
-        .maybeSingle();
+    
+    try {
+      const result = await getPublicPetById(petId);
       
-      if (tagError) {
-        console.error("Error cargando tag asociado:", tagError);
+      if (!result.success || !result.data) {
+        setPet(null);
+        setIsLoading(false);
+        return;
       }
-      setTag(tagData);
+      
+      const petData = result.data;
+      setPet(petData);
+      
+      // Extraer información del tag si existe
+      if (petData.tags && petData.tags.length > 0) {
+        setTag(petData.tags[0]);
+      }
+      
+    } catch (error) {
+      console.error("Error cargando mascota pública:", error);
+      setPet(null);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const generateQR = async () => {
@@ -74,7 +66,6 @@ const PublicPetProfile = () => {
       console.error('Error generating QR for public profile:', err);
     }
   };
-
 
   const handleContact = (contactInfo) => {
     if (contactInfo.includes('@')) {

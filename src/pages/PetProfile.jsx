@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -29,38 +28,44 @@ const PetProfile = () => {
       return;
     }
 
-    // 1. Fetch Pet
-    const { data: petData, error: petError } = await supabase
-      .from('pets')
-      .select('*')
-      .eq('id', petId)
-      .eq('user_id', user.id)
-      .single();
+    try {
+      // 1. Fetch Pet
+      const { data: petData, error: petError } = await supabase
+        .from('pets')
+        .select('*')
+        .eq('id', petId)
+        .eq('user_id', user.id)
+        .single();
 
-    if (petError || !petData) {
-      toast({ title: "Error", description: "Mascota no encontrada o no tienes permiso.", variant: "destructive" });
+      if (petError || !petData) {
+        toast({ title: "Error", description: "Mascota no encontrada o no tienes permiso.", variant: "destructive" });
+        navigate('/dashboard');
+        setIsLoading(false);
+        return;
+      }
+      setPet(petData);
+
+      // 2. Fetch associated Tag
+      const { data: tagData, error: tagError } = await supabase
+        .from('tags')
+        .select('code, activated') 
+        .eq('pet_id', petData.id) 
+        .eq('user_id', user.id)   
+        .maybeSingle(); 
+
+      if (tagError && tagError.code !== 'PGRST116') { 
+          toast({ title: "Error", description: `Error buscando tag asociado: ${tagError.message}`, variant: "destructive" });
+      }
+      setTagInfo(tagData || null); 
+
+    } catch (error) {
+      console.error('Error loading pet and tag:', error);
+      toast({ title: "Error", description: "Error cargando información de la mascota.", variant: "destructive" });
       navigate('/dashboard');
+    } finally {
       setIsLoading(false);
-      return;
     }
-    setPet(petData);
-
-    // 2. Fetch associated Tag
-    const { data: tagData, error: tagError } = await supabase
-      .from('tags')
-      .select('code, activated') // Only select needed fields from tags
-      .eq('pet_id', petData.id) // Link through pet_id
-      .eq('user_id', user.id)   // Ensure tag also belongs to the user for consistency
-      .maybeSingle(); 
-
-    if (tagError && tagError.code !== 'PGRST116') { 
-        toast({ title: "Error", description: `Error buscando tag asociado: ${tagError.message}`, variant: "destructive" });
-    }
-    setTagInfo(tagData || null); 
-
-    setIsLoading(false);
   }, [petId, user, navigate]);
-
 
   useEffect(() => {
     loadPetAndTag();
@@ -107,7 +112,6 @@ const PetProfile = () => {
     }
   };
 
-
   const downloadActivationQR = async () => {
     if (!tagInfo?.code) {
        toast({ title: "Error", description: "Esta mascota no tiene un código de tag asociado.", variant: "destructive" });
@@ -136,7 +140,6 @@ const PetProfile = () => {
       toast({ title: "Error generando QR de activación para descarga", description: error.message, variant: "destructive" });
     }
   };
-
 
   const shareProfile = async () => {
     if (!pet) return;

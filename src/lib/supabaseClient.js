@@ -245,7 +245,7 @@ export const getUserData = async (userId) => {
   }
 };
 
-// Helper function to get user tags with pets data
+// Helper function to get user tags with pets data - ACTUALIZADA para nueva estructura
 export const getUserTagsWithPets = async (userId) => {
   try {
     const { data, error } = await supabase
@@ -277,7 +277,7 @@ export const getUserTagsWithPets = async (userId) => {
   }
 };
 
-// Helper function to get all tags for admin with related data
+// Helper function to get all tags for admin with related data - ACTUALIZADA
 export const getAllTagsWithDetails = async () => {
   try {
     const { data, error } = await supabase
@@ -297,5 +297,132 @@ export const getAllTagsWithDetails = async () => {
     return { success: !error, data: data || [], error: error?.message };
   } catch (error) {
     return { success: false, data: [], error: error.message };
+  }
+};
+
+// Nueva función para obtener tag por código
+export const getTagByCode = async (code) => {
+  try {
+    const { data, error } = await supabase
+      .from('tags')
+      .select(`
+        id,
+        code,
+        activated,
+        user_id,
+        pet_id,
+        pets:pet_id (
+          id,
+          name,
+          type,
+          breed,
+          owner_name,
+          owner_contact,
+          notes,
+          qr_activated,
+          user_id
+        )
+      `)
+      .eq('code', code.toUpperCase())
+      .single();
+    
+    return { success: !error, data, error: error?.message };
+  } catch (error) {
+    return { success: false, data: null, error: error.message };
+  }
+};
+
+// Nueva función para activar tag con mascota
+export const activateTagWithPet = async (tagId, petData, userId) => {
+  try {
+    // Primero crear o actualizar la mascota
+    let petId = petData.id;
+    
+    if (!petId) {
+      // Crear nueva mascota
+      const { data: newPet, error: petError } = await supabase
+        .from('pets')
+        .insert({
+          name: petData.name,
+          type: petData.type,
+          breed: petData.breed,
+          owner_name: petData.owner_name,
+          owner_contact: petData.owner_contact,
+          notes: petData.notes,
+          user_id: userId,
+          qr_activated: true
+        })
+        .select('id')
+        .single();
+      
+      if (petError) throw petError;
+      petId = newPet.id;
+    } else {
+      // Actualizar mascota existente
+      const { error: updateError } = await supabase
+        .from('pets')
+        .update({
+          name: petData.name,
+          type: petData.type,
+          breed: petData.breed,
+          owner_name: petData.owner_name,
+          owner_contact: petData.owner_contact,
+          notes: petData.notes,
+          qr_activated: true
+        })
+        .eq('id', petId)
+        .eq('user_id', userId);
+      
+      if (updateError) throw updateError;
+    }
+    
+    // Luego actualizar el tag
+    const { data: updatedTag, error: tagError } = await supabase
+      .from('tags')
+      .update({
+        pet_id: petId,
+        activated: true,
+        activated_at: new Date().toISOString(),
+        user_id: userId
+      })
+      .eq('id', tagId)
+      .select()
+      .single();
+    
+    if (tagError) throw tagError;
+    
+    return { success: true, data: { tag: updatedTag, petId }, error: null };
+  } catch (error) {
+    console.error('Error activating tag with pet:', error);
+    return { success: false, data: null, error: error.message };
+  }
+};
+
+// Nueva función para obtener mascota pública por ID
+export const getPublicPetById = async (petId) => {
+  try {
+    const { data, error } = await supabase
+      .from('pets')
+      .select(`
+        id,
+        name,
+        type,
+        breed,
+        owner_name,
+        owner_contact,
+        notes,
+        qr_activated,
+        tags:tags!pet_id (
+          code,
+          activated
+        )
+      `)
+      .eq('id', petId)
+      .eq('qr_activated', true)
+      .single();
+    
+    return { success: !error, data, error: error?.message };
+  } catch (error) {
+    return { success: false, data: null, error: error.message };
   }
 };
