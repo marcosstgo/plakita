@@ -426,3 +426,42 @@ export const getPublicPetById = async (petId) => {
     return { success: false, data: null, error: error.message };
   }
 };
+
+// Nueva función para verificar y sincronizar usuario específico
+export const verifyAndSyncUser = async (email) => {
+  try {
+    console.log(`🔍 Verificando usuario: ${email}`);
+    
+    // 1. Buscar en auth.users
+    const { data: authUser, error: authError } = await supabase.auth.admin.listUsers();
+    
+    if (authError) {
+      console.error('Error accediendo a auth.users:', authError);
+      return { success: false, error: 'No se puede acceder a auth.users desde el cliente' };
+    }
+    
+    // 2. Buscar en public.users
+    const { data: publicUser, error: publicError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+    
+    if (publicError) {
+      console.error('Error en public.users:', publicError);
+      return { success: false, error: publicError.message };
+    }
+    
+    return {
+      success: true,
+      authUserExists: false, // No podemos verificar desde el cliente
+      publicUserExists: !!publicUser,
+      publicUser: publicUser,
+      message: publicUser ? 'Usuario encontrado en public.users' : 'Usuario no encontrado en public.users'
+    };
+    
+  } catch (error) {
+    console.error('Error en verificación:', error);
+    return { success: false, error: error.message };
+  }
+};
