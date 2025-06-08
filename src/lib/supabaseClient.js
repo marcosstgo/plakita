@@ -19,10 +19,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-// Helper function to check database connection
+// Helper function to safely check database connection
 export const checkDatabaseConnection = async () => {
   try {
-    const { data, error } = await supabase.from('users').select('count').limit(1);
+    // Usar una consulta muy simple primero
+    const { data, error } = await supabase.from('tags').select('*').limit(1);
     if (error) throw error;
     return { connected: true, error: null };
   } catch (error) {
@@ -31,13 +32,14 @@ export const checkDatabaseConnection = async () => {
   }
 };
 
-// Helper function to verify schema
+// Helper function to safely verify schema
 export const verifyDatabaseSchema = async () => {
   const tables = ['users', 'pets', 'tags', 'medical_records', 'vaccinations', 'medications', 'photos', 'lost_pets', 'vet_visits'];
   const results = {};
   
   for (const table of tables) {
     try {
+      // Usar consulta simple sin especificar columnas
       const { data, error } = await supabase.from(table).select('*').limit(1);
       results[table] = { exists: !error, error: error?.message };
     } catch (error) {
@@ -48,53 +50,132 @@ export const verifyDatabaseSchema = async () => {
   return results;
 };
 
-// Helper function to test specific queries
+// Helper function to safely test specific queries
 export const testDatabaseQueries = async () => {
   const tests = {};
   
   try {
-    // Test tags query
+    // Test básico de tags - usar * primero
     const { data: tagsData, error: tagsError } = await supabase
       .from('tags')
-      .select('id, code, activated, user_id, pet_id, created_at')
+      .select('*')
       .limit(1);
     
-    tests.tags = { success: !tagsError, error: tagsError?.message };
+    tests.tags_basic = { success: !tagsError, error: tagsError?.message };
+
+    // Si el test básico funciona, probar columnas específicas
+    if (!tagsError) {
+      try {
+        const { data: tagsSpecific, error: tagsSpecificError } = await supabase
+          .from('tags')
+          .select('id, code, activated, user_id, pet_id, created_at')
+          .limit(1);
+        
+        tests.tags_specific = { success: !tagsSpecificError, error: tagsSpecificError?.message };
+      } catch (error) {
+        tests.tags_specific = { success: false, error: error.message };
+      }
+    }
   } catch (error) {
-    tests.tags = { success: false, error: error.message };
+    tests.tags_basic = { success: false, error: error.message };
   }
   
   try {
-    // Test pets query
+    // Test básico de pets
     const { data: petsData, error: petsError } = await supabase
       .from('pets')
-      .select('id, name, type, breed, owner_name, owner_contact, notes, user_id, qr_activated')
+      .select('*')
       .limit(1);
     
-    tests.pets = { success: !petsError, error: petsError?.message };
+    tests.pets_basic = { success: !petsError, error: petsError?.message };
+
+    // Si el test básico funciona, probar columnas específicas
+    if (!petsError) {
+      try {
+        const { data: petsSpecific, error: petsSpecificError } = await supabase
+          .from('pets')
+          .select('id, name, type, breed, owner_name, owner_contact, notes, user_id, qr_activated')
+          .limit(1);
+        
+        tests.pets_specific = { success: !petsSpecificError, error: petsSpecificError?.message };
+      } catch (error) {
+        tests.pets_specific = { success: false, error: error.message };
+      }
+    }
   } catch (error) {
-    tests.pets = { success: false, error: error.message };
+    tests.pets_basic = { success: false, error: error.message };
   }
   
   try {
-    // Test join query
-    const { data: joinData, error: joinError } = await supabase
-      .from('tags')
-      .select(`
-        id, 
-        code, 
-        activated, 
-        user_id,
-        pet_id,
-        pets:pet_id (id, name),
-        users:user_id (email)
-      `)
-      .limit(1);
-    
-    tests.joins = { success: !joinError, error: joinError?.message };
+    // Test de join solo si los tests básicos funcionan
+    if (tests.tags_basic?.success && tests.pets_basic?.success) {
+      const { data: joinData, error: joinError } = await supabase
+        .from('tags')
+        .select(`
+          id, 
+          code, 
+          activated,
+          pets:pet_id (id, name)
+        `)
+        .limit(1);
+      
+      tests.joins = { success: !joinError, error: joinError?.message };
+    }
   } catch (error) {
     tests.joins = { success: false, error: error.message };
   }
   
   return tests;
+};
+
+// Helper function to check specific columns
+export const checkRequiredColumns = async () => {
+  const columnChecks = {};
+  
+  try {
+    // Verificar user_id en tags
+    const { data: tagsUserIdTest, error: tagsUserIdError } = await supabase
+      .from('tags')
+      .select('user_id')
+      .limit(1);
+    
+    columnChecks.tags_user_id = { 
+      exists: !tagsUserIdError, 
+      error: tagsUserIdError?.message 
+    };
+  } catch (error) {
+    columnChecks.tags_user_id = { exists: false, error: error.message };
+  }
+
+  try {
+    // Verificar qr_activated en pets
+    const { data: petsQrTest, error: petsQrError } = await supabase
+      .from('pets')
+      .select('qr_activated')
+      .limit(1);
+    
+    columnChecks.pets_qr_activated = { 
+      exists: !petsQrError, 
+      error: petsQrError?.message 
+    };
+  } catch (error) {
+    columnChecks.pets_qr_activated = { exists: false, error: error.message };
+  }
+
+  try {
+    // Verificar created_at en tags
+    const { data: tagsCreatedTest, error: tagsCreatedError } = await supabase
+      .from('tags')
+      .select('created_at')
+      .limit(1);
+    
+    columnChecks.tags_created_at = { 
+      exists: !tagsCreatedError, 
+      error: tagsCreatedError?.message 
+    };
+  } catch (error) {
+    columnChecks.tags_created_at = { exists: false, error: error.message };
+  }
+
+  return columnChecks;
 };

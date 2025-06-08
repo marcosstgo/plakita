@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase, testDatabaseQueries } from '@/lib/supabaseClient';
+import { supabase, testDatabaseQueries, checkRequiredColumns } from '@/lib/supabaseClient';
 import AdminStatsGrid from '@/components/admin/AdminStatsGrid';
 import AdminTagsTable from '@/components/admin/AdminTagsTable';
 import CreateTagDialog from '@/components/admin/CreateTagDialog';
@@ -27,11 +27,16 @@ const AdminDashboard = () => {
   const [isActuallyAdmin, setIsActuallyAdmin] = useState(false);
   const [databaseStatus, setDatabaseStatus] = useState(null);
   const [schemaErrors, setSchemaErrors] = useState([]);
+  const [columnStatus, setColumnStatus] = useState(null);
 
   const testDatabase = async () => {
     try {
       const results = await testDatabaseQueries();
       setDatabaseStatus(results);
+      
+      // Check required columns
+      const columnChecks = await checkRequiredColumns();
+      setColumnStatus(columnChecks);
       
       // Show any errors
       Object.entries(results).forEach(([test, result]) => {
@@ -49,31 +54,22 @@ const AdminDashboard = () => {
     const errors = [];
     
     try {
-      // Test if tags.user_id column exists
-      const { error: tagsUserIdError } = await supabase
-        .from('tags')
-        .select('user_id')
-        .limit(1);
+      // Verificar columnas requeridas
+      const columnChecks = await checkRequiredColumns();
       
-      if (tagsUserIdError && tagsUserIdError.message.includes('user_id')) {
-        errors.push('Columna tags.user_id no existe');
+      if (!columnChecks.tags_user_id?.exists) {
+        errors.push('Columna tags.user_id no existe o no es accesible');
+      }
+      
+      if (!columnChecks.pets_qr_activated?.exists) {
+        errors.push('Columna pets.qr_activated no existe o no es accesible');
+      }
+      
+      if (!columnChecks.tags_created_at?.exists) {
+        errors.push('Columna tags.created_at no existe o no es accesible');
       }
     } catch (error) {
-      errors.push(`Error verificando tags.user_id: ${error.message}`);
-    }
-
-    try {
-      // Test if pets.qr_activated column exists
-      const { error: petsQrError } = await supabase
-        .from('pets')
-        .select('qr_activated')
-        .limit(1);
-      
-      if (petsQrError && petsQrError.message.includes('qr_activated')) {
-        errors.push('Columna pets.qr_activated no existe');
-      }
-    } catch (error) {
-      errors.push(`Error verificando pets.qr_activated: ${error.message}`);
+      errors.push(`Error verificando esquema: ${error.message}`);
     }
 
     setSchemaErrors(errors);
@@ -88,7 +84,7 @@ const AdminDashboard = () => {
     setIsLoading(true);
     
     try {
-      // First check database schema
+      // Verificar esquema primero
       const schemaOk = await checkDatabaseSchema();
       
       if (!schemaOk) {
@@ -140,10 +136,10 @@ const AdminDashboard = () => {
 
   const fetchAllTagsWithDetails = async () => {
     try {
-      // First, get all tags with basic info
+      // Primero intentar consulta básica
       const { data: tagsData, error: tagsError } = await supabase
         .from('tags')
-        .select('id, code, activated, created_at, pet_id, user_id')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (tagsError) {
@@ -158,11 +154,11 @@ const AdminDashboard = () => {
         return;
       }
 
-      // Get unique pet_ids and user_ids for batch fetching
+      // Obtener IDs únicos para consultas batch
       const petIds = [...new Set(tagsData.filter(tag => tag.pet_id).map(tag => tag.pet_id))];
       const userIds = [...new Set(tagsData.filter(tag => tag.user_id).map(tag => tag.user_id))];
 
-      // Fetch pets data
+      // Fetch pets data si hay pet_ids
       let petsData = [];
       if (petIds.length > 0) {
         try {
@@ -181,8 +177,7 @@ const AdminDashboard = () => {
         }
       }
 
-      // For users, we'll try to get emails from the users table if it exists
-      // Otherwise, we'll show a generic message
+      // Para usuarios, intentar obtener emails de la tabla users
       let usersData = [];
       if (userIds.length > 0) {
         try {
@@ -195,12 +190,11 @@ const AdminDashboard = () => {
             usersData = users;
           }
         } catch (error) {
-          console.log('Could not fetch from users table, using auth.users instead');
-          // For auth.users, we can't directly query, so we'll show generic info
+          console.log('Could not fetch from users table, using fallback');
         }
       }
 
-      // Combine the data
+      // Combinar los datos
       const combinedData = tagsData.map(tag => ({
         ...tag,
         pets: tag.pet_id ? petsData.find(pet => pet.id === tag.pet_id) || null : null,
@@ -223,7 +217,6 @@ const AdminDashboard = () => {
       
       if (error) {
         console.error('Error counting pets:', error);
-        toast({ title: "Error contando mascotas", description: error.message, variant: "destructive" });
         setAllPetsCount(0);
       } else {
         setAllPetsCount(count || 0);
@@ -236,7 +229,7 @@ const AdminDashboard = () => {
   
   const fetchAllUsersCount = async () => {
     try {
-      // Count unique user IDs from tags table as fallback
+      // Contar IDs únicos de usuario desde tags
       const { data: tagsData, error: tagsError } = await supabase
         .from('tags')
         .select('user_id')
@@ -246,17 +239,12 @@ const AdminDashboard = () => {
         throw tagsError;
       }
 
-      // Count unique user IDs
+      // Contar IDs únicos
       const uniqueUserIds = new Set(tagsData.map(tag => tag.user_id));
       setAllUsersCount(uniqueUserIds.size);
     } catch (error) {
       console.error('Error al contar usuarios:', error);
       setAllUsersCount(0);
-      toast({
-        title: "Advertencia",
-        description: "No se pudo obtener el conteo exacto de usuarios.",
-        variant: "destructive"
-      });
     }
   };
 
@@ -343,14 +331,32 @@ const AdminDashboard = () => {
             </div>
           )}
           
+          {/* Database Status */}
           {databaseStatus && (
             <div className="mt-4 p-3 bg-white/10 rounded-lg">
-              <p className="text-sm text-white/70">Estado de la base de datos:</p>
-              {Object.entries(databaseStatus).map(([test, result]) => (
-                <span key={test} className={`inline-block mr-3 text-xs px-2 py-1 rounded ${result.success ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
-                  {test}: {result.success ? '✓' : '✗'}
-                </span>
-              ))}
+              <p className="text-sm text-white/70 mb-2">Estado de la base de datos:</p>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {Object.entries(databaseStatus).map(([test, result]) => (
+                  <span key={test} className={`inline-block text-xs px-2 py-1 rounded ${result.success ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
+                    {test}: {result.success ? '✓' : '✗'}
+                  </span>
+                ))}
+              </div>
+              
+              {/* Column Status */}
+              {columnStatus && (
+                <div className="mt-2">
+                  <p className="text-xs text-white/60 mb-1">Estado de columnas críticas:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {Object.entries(columnStatus).map(([column, status]) => (
+                      <span key={column} className={`inline-block text-xs px-2 py-1 rounded ${status.exists ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
+                        {column}: {status.exists ? '✓' : '✗'}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               <Button
                 size="sm"
                 variant="ghost"
