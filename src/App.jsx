@@ -13,6 +13,7 @@ import Help from '@/pages/Help';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ActivateTagPage from '@/pages/ActivateTagPage.jsx'; 
 import AdminDashboard from '@/pages/AdminDashboard';
+import AdminDiagnostic from '@/pages/AdminDiagnostic';
 import UserVerification from '@/pages/UserVerification';
 
 function App() {
@@ -49,6 +50,11 @@ function App() {
                <Route path="admin" element={
                 <ProtectedRoute>
                   <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="admin-diagnostic" element={
+                <ProtectedRoute>
+                  <AdminDiagnostic />
                 </ProtectedRoute>
               } />
               <Route path="verify-user" element={

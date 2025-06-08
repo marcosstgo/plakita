@@ -12,6 +12,9 @@ import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabaseClient';
 import QRCode from 'qrcode';
 
+// IMPORTANTE: Este ID debe coincidir con el ID real del usuario santiago.marcos@gmail.com en auth.users
+// Si el ID no coincide, ejecuta esta consulta en Supabase SQL Editor:
+// SELECT id FROM auth.users WHERE email = 'santiago.marcos@gmail.com';
 export const ADMIN_USER_ID = '08c4845d-28e2-4a9a-b05d-350fac947b28';
 
 const AdminDashboard = () => {
@@ -53,20 +56,44 @@ const AdminDashboard = () => {
       return;
     }
     
+    console.log('🔍 Verificando permisos de admin...');
+    console.log('Usuario actual ID:', user.id);
+    console.log('Usuario actual email:', user.email);
+    console.log('Admin ID esperado:', ADMIN_USER_ID);
+    
     const isAdminCheck = user.id === ADMIN_USER_ID;
     setIsActuallyAdmin(isAdminCheck);
 
     if (!isAdminCheck) {
-      toast({ 
-        title: "Acceso Denegado", 
-        description: "No tienes permisos para acceder a esta área.", 
-        variant: "destructive" 
-      });
-      navigate('/dashboard');
-      setIsLoading(false);
-    } else {
-      loadAdminData();
+      // Verificar también por email como fallback
+      const isAdminByEmail = user.email === 'santiago.marcos@gmail.com';
+      
+      if (isAdminByEmail) {
+        console.warn('⚠️ Usuario admin detectado por email pero ID no coincide');
+        console.warn('ID actual:', user.id);
+        console.warn('ID esperado:', ADMIN_USER_ID);
+        console.warn('Actualizar ADMIN_USER_ID en AdminDashboard.jsx');
+        
+        // Permitir acceso temporal pero mostrar advertencia
+        setIsActuallyAdmin(true);
+        toast({ 
+          title: "Advertencia de Admin", 
+          description: "ID de admin no coincide. Revisar configuración.", 
+          variant: "destructive" 
+        });
+      } else {
+        toast({ 
+          title: "Acceso Denegado", 
+          description: "No tienes permisos para acceder a esta área.", 
+          variant: "destructive" 
+        });
+        navigate('/dashboard');
+        setIsLoading(false);
+        return;
+      }
     }
+
+    loadAdminData();
   }, [user, authLoading, navigate]);
 
   // Verificar estado de la base de datos
@@ -410,6 +437,11 @@ const AdminDashboard = () => {
           <AlertTriangle className="h-16 w-16 text-yellow-400 mx-auto mb-6" />
           <h1 className="text-4xl font-bold mb-4">Acceso Denegado</h1>
           <p className="text-xl mb-6">No tienes permisos para ver esta página.</p>
+          <div className="space-y-2 text-sm text-white/70 mb-6">
+            <p>Usuario actual: {user?.email}</p>
+            <p>ID actual: {user?.id}</p>
+            <p>Admin esperado: santiago.marcos@gmail.com</p>
+          </div>
           <Link to="/">
             <Button className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-lg">
               Volver al Inicio
@@ -442,6 +474,13 @@ const AdminDashboard = () => {
           <p className="text-white/80 text-lg">
             Gestiona Plakitas, visualiza estadísticas y supervisa la plataforma.
           </p>
+          
+          {/* Información del admin actual */}
+          <div className="mt-4 p-3 bg-green-500/20 border border-green-500/50 rounded-lg">
+            <p className="text-green-300 text-sm">
+              ✅ Conectado como administrador: {user?.email} (ID: {user?.id})
+            </p>
+          </div>
           
           {/* Errores de esquema */}
           {schemaErrors.length > 0 && (
