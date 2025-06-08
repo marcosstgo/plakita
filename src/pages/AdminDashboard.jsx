@@ -26,6 +26,7 @@ const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isActuallyAdmin, setIsActuallyAdmin] = useState(false);
   const [databaseStatus, setDatabaseStatus] = useState(null);
+  const [schemaErrors, setSchemaErrors] = useState([]);
 
   const testDatabase = async () => {
     try {
@@ -44,13 +45,62 @@ const AdminDashboard = () => {
     }
   };
 
+  const checkDatabaseSchema = async () => {
+    const errors = [];
+    
+    try {
+      // Test if tags.user_id column exists
+      const { error: tagsUserIdError } = await supabase
+        .from('tags')
+        .select('user_id')
+        .limit(1);
+      
+      if (tagsUserIdError && tagsUserIdError.message.includes('user_id')) {
+        errors.push('Columna tags.user_id no existe');
+      }
+    } catch (error) {
+      errors.push(`Error verificando tags.user_id: ${error.message}`);
+    }
+
+    try {
+      // Test if pets.qr_activated column exists
+      const { error: petsQrError } = await supabase
+        .from('pets')
+        .select('qr_activated')
+        .limit(1);
+      
+      if (petsQrError && petsQrError.message.includes('qr_activated')) {
+        errors.push('Columna pets.qr_activated no existe');
+      }
+    } catch (error) {
+      errors.push(`Error verificando pets.qr_activated: ${error.message}`);
+    }
+
+    setSchemaErrors(errors);
+    return errors.length === 0;
+  };
+
   const fetchData = useCallback(async () => {
     if (!isActuallyAdmin) {
       setIsLoading(false);
       return;
     }
     setIsLoading(true);
+    
     try {
+      // First check database schema
+      const schemaOk = await checkDatabaseSchema();
+      
+      if (!schemaOk) {
+        toast({ 
+          title: "Error de esquema de base de datos", 
+          description: "La base de datos necesita ser actualizada. Ejecuta las migraciones pendientes.", 
+          variant: "destructive" 
+        });
+        setIsLoading(false);
+        return;
+      }
+
       await testDatabase();
       await Promise.all([
         fetchAllTagsWithDetails(),
@@ -90,7 +140,7 @@ const AdminDashboard = () => {
 
   const fetchAllTagsWithDetails = async () => {
     try {
-      // First, get all tags
+      // First, get all tags with basic info
       const { data: tagsData, error: tagsError } = await supabase
         .from('tags')
         .select('id, code, activated, created_at, pet_id, user_id')
@@ -115,23 +165,27 @@ const AdminDashboard = () => {
       // Fetch pets data
       let petsData = [];
       if (petIds.length > 0) {
-        const { data: pets, error: petsError } = await supabase
-          .from('pets')
-          .select('id, name')
-          .in('id', petIds);
-        
-        if (petsError) {
-          console.error('Error fetching pets:', petsError);
-        } else {
-          petsData = pets || [];
+        try {
+          const { data: pets, error: petsError } = await supabase
+            .from('pets')
+            .select('id, name')
+            .in('id', petIds);
+          
+          if (petsError) {
+            console.error('Error fetching pets:', petsError);
+          } else {
+            petsData = pets || [];
+          }
+        } catch (error) {
+          console.error('Error fetching pets:', error);
         }
       }
 
-      // Fetch users data from auth.users (this might not work directly, so we'll handle it differently)
+      // For users, we'll try to get emails from the users table if it exists
+      // Otherwise, we'll show a generic message
       let usersData = [];
       if (userIds.length > 0) {
         try {
-          // Try to get user emails from the users table if it exists
           const { data: users, error: usersError } = await supabase
             .from('users')
             .select('id, email')
@@ -141,9 +195,8 @@ const AdminDashboard = () => {
             usersData = users;
           }
         } catch (error) {
-          console.log('Could not fetch from users table, this is expected if using auth.users');
-          // For auth.users, we can't directly query, so we'll leave user emails empty
-          // or try to get them from the auth metadata if available
+          console.log('Could not fetch from users table, using auth.users instead');
+          // For auth.users, we can't directly query, so we'll show generic info
         }
       }
 
@@ -151,7 +204,7 @@ const AdminDashboard = () => {
       const combinedData = tagsData.map(tag => ({
         ...tag,
         pets: tag.pet_id ? petsData.find(pet => pet.id === tag.pet_id) || null : null,
-        users: tag.user_id ? usersData.find(user => user.id === tag.user_id) || { email: 'Usuario registrado' } : null
+        users: tag.user_id ? (usersData.find(user => user.id === tag.user_id) || { email: 'Usuario registrado' }) : null
       }));
 
       setTagsWithDetails(combinedData);
@@ -275,6 +328,21 @@ const AdminDashboard = () => {
             Gestiona Plakitas, visualiza estadísticas y supervisa la plataforma.
           </p>
           
+          {/* Schema Errors Warning */}
+          {schemaErrors.length > 0 && (
+            <div className="mt-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
+              <h3 className="text-red-300 font-semibold mb-2">⚠️ Errores de Esquema de Base de Datos</h3>
+              <ul className="text-red-200 text-sm space-y-1">
+                {schemaErrors.map((error, index) => (
+                  <li key={index}>• {error}</li>
+                ))}
+              </ul>
+              <p className="text-red-200 text-sm mt-2">
+                Ejecuta las migraciones pendientes en Supabase para resolver estos problemas.
+              </p>
+            </div>
+          )}
+          
           {databaseStatus && (
             <div className="mt-4 p-3 bg-white/10 rounded-lg">
               <p className="text-sm text-white/70">Estado de la base de datos:</p>
@@ -308,12 +376,23 @@ const AdminDashboard = () => {
               <Button 
                 className="bg-purple-600 hover:bg-purple-700 text-white w-full sm:w-auto"
                 onClick={() => setIsCreateTagDialogOpen(true)}
+                disabled={schemaErrors.length > 0}
               >
                 <Plus className="h-4 w-4 mr-2" /> Crear Nueva Plakita
               </Button>
             </CardHeader>
             <CardContent>
-              <AdminTagsTable tags={tagsWithDetails} onOpenDeleteDialog={openDeleteConfirmDialog} />
+              {schemaErrors.length > 0 ? (
+                <div className="text-center py-8">
+                  <AlertTriangle className="h-16 w-16 text-yellow-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-white mb-2">Base de Datos Necesita Actualización</h3>
+                  <p className="text-white/70">
+                    Ejecuta las migraciones pendientes en Supabase para poder gestionar las Plakitas.
+                  </p>
+                </div>
+              ) : (
+                <AdminTagsTable tags={tagsWithDetails} onOpenDeleteDialog={openDeleteConfirmDialog} />
+              )}
             </CardContent>
           </Card>
         </motion.div>
