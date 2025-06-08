@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -6,6 +5,17 @@ import { Heart, QrCode, Shield, Smartphone, Tag, CheckCircle, ShoppingCart } fro
 import { Button } from '@/components/ui/button';
 
 const Home = () => {
+  const scrollToPricing = (e) => {
+    e.preventDefault();
+    const pricingSection = document.getElementById('pricing');
+    if (pricingSection) {
+      pricingSection.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -30,11 +40,14 @@ const Home = () => {
                   Registra tu Plakita
                 </Button>
               </Link>
-              <Link to="#pricing">
-                <Button size="lg" variant="outline" className="bg-transparent border-white text-white hover:bg-white/20 text-lg px-8 py-4">
-                  Ver Precios
-                </Button>
-              </Link>
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="bg-transparent border-white text-white hover:bg-white/20 text-lg px-8 py-4"
+                onClick={scrollToPricing}
+              >
+                Ver Precios
+              </Button>
             </div>
           </motion.div>
 
@@ -243,11 +256,13 @@ const Home = () => {
             <p className="text-xl text-white/80 mb-8">
               Únete a la comunidad de dueños responsables que eligen la mejor protección.
             </p>
-            <Link to="#pricing">
-              <Button size="lg" className="bg-white text-purple-600 hover:bg-white/90 text-lg px-8 py-4 pulse-glow">
-                Ver Planes y Beneficios
-              </Button>
-            </Link>
+            <Button 
+              size="lg" 
+              className="bg-white text-purple-600 hover:bg-white/90 text-lg px-8 py-4 pulse-glow"
+              onClick={scrollToPricing}
+            >
+              Ver Planes y Beneficios
+            </Button>
           </motion.div>
         </div>
       </section>
