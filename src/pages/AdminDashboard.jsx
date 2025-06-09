@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Tag, Users, QrCode, Heart, AlertTriangle, ShieldCheck, RefreshCw, Download, Eye, Trash2, TestTube, Chrome as Broom, Database, Bug } from 'lucide-react';
+import { Plus, Tag, Users, QrCode, Heart, AlertTriangle, ShieldCheck, RefreshCw, Download, Eye, Trash2, TestTube, Chrome as Broom, Database, Bug, Wrench } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
-import { supabase, createTagWithValidation, createTestTags, cleanupTestTags, getAdminStatistics, getAllTagsWithDetails } from '@/lib/supabaseClient';
+import { supabase, createTagWithValidation, createTestTags, cleanupTestTags, getAdminStatistics, getAllTagsWithDetails, validateAndFixIntegrity, getIntegrityReport, fixSpecificTags } from '@/lib/supabaseClient';
 import QRCode from 'qrcode';
 import { validateTagCode, generateTagCode } from '@/components/forms/PetFormValidation';
 import FormErrorDisplay from '@/components/forms/FormErrorDisplay';
@@ -52,6 +52,10 @@ const AdminDashboard = () => {
   const [isCreatingTestTags, setIsCreatingTestTags] = useState(false);
   const [isCleaningTestTags, setIsCleaningTestTags] = useState(false);
   const [isFixingIntegrity, setIsFixingIntegrity] = useState(false);
+
+  // Estados para integridad
+  const [integrityIssues, setIntegrityIssues] = useState([]);
+  const [isCheckingIntegrity, setIsCheckingIntegrity] = useState(false);
 
   // Verificar si el usuario es admin
   useEffect(() => {
@@ -196,7 +200,8 @@ const AdminDashboard = () => {
       // Cargar datos en paralelo usando funciones seguras
       await Promise.all([
         loadTags(),
-        loadStats()
+        loadStats(),
+        checkIntegrityIssues()
       ]);
       
     } catch (error) {
@@ -236,6 +241,13 @@ const AdminDashboard = () => {
       });
       
       setTags(processedTags);
+      
+      // Contar problemas de integridad
+      const integrityProblems = processedTags.filter(tag => tag.hasIntegrityIssue || tag.isOrphaned);
+      if (integrityProblems.length > 0) {
+        console.log('Problemas de integridad encontrados:', integrityProblems);
+      }
+      
     } catch (error) {
       console.error('Error loading tags:', error);
       // Fallback: cargar solo datos básicos
@@ -292,6 +304,23 @@ const AdminDashboard = () => {
         totalPets: 0,
         totalUsers: 0
       });
+    }
+  };
+
+  // Verificar problemas de integridad
+  const checkIntegrityIssues = async () => {
+    try {
+      const result = await getIntegrityReport();
+      
+      if (result.success) {
+        setIntegrityIssues(result.data || []);
+      } else {
+        console.error('Error checking integrity:', result.error);
+        setIntegrityIssues([]);
+      }
+    } catch (error) {
+      console.error('Error checking integrity:', error);
+      setIntegrityIssues([]);
     }
   };
 
@@ -422,32 +451,16 @@ const AdminDashboard = () => {
     setIsFixingIntegrity(true);
     
     try {
-      // Ejecutar función de validación de integridad
-      const { data: issues, error } = await supabase.rpc('validate_tag_pet_integrity');
+      const result = await validateAndFixIntegrity();
       
-      if (error) {
-        console.warn('Función de validación no disponible, usando método alternativo');
+      if (result.success) {
+        const issues = result.data || [];
+        const fixedCount = issues.filter(issue => issue.action_taken !== 'no_integrity_issues_found').length;
         
-        // Método alternativo: corregir tags activados sin mascota
-        const { data: orphanedTags, error: orphanError } = await supabase
-          .from('tags')
-          .select('id, code')
-          .eq('activated', true)
-          .is('pet_id', null);
-        
-        if (!orphanError && orphanedTags && orphanedTags.length > 0) {
-          // Desactivar tags huérfanos
-          const { error: updateError } = await supabase
-            .from('tags')
-            .update({ activated: false, activated_at: null, user_id: null })
-            .eq('activated', true)
-            .is('pet_id', null);
-          
-          if (updateError) throw updateError;
-          
+        if (fixedCount > 0) {
           toast({
             title: "Integridad corregida",
-            description: `Se desactivaron ${orphanedTags.length} tags sin mascota asociada.`
+            description: `Se corrigieron ${fixedCount} problemas de integridad.`
           });
         } else {
           toast({
@@ -455,27 +468,14 @@ const AdminDashboard = () => {
             description: "No se encontraron problemas de integridad."
           });
         }
+        
+        // Recargar datos
+        await loadTags();
+        await loadStats();
+        await checkIntegrityIssues();
       } else {
-        const issueCount = issues?.length || 0;
-        if (issueCount > 0) {
-          toast({
-            title: "Problemas detectados",
-            description: `Se encontraron ${issueCount} problemas de integridad. Revisa la consola para detalles.`,
-            variant: "destructive"
-          });
-          console.log('Problemas de integridad encontrados:', issues);
-        } else {
-          toast({
-            title: "Integridad verificada",
-            description: "No se encontraron problemas de integridad."
-          });
-        }
+        throw new Error(result.error);
       }
-      
-      // Recargar datos
-      await loadTags();
-      await loadStats();
-      
     } catch (error) {
       toast({
         title: "Error verificando integridad",
@@ -484,6 +484,52 @@ const AdminDashboard = () => {
       });
     } finally {
       setIsFixingIntegrity(false);
+    }
+  };
+
+  // NUEVA FUNCIÓN: Corregir tags específicos problemáticos
+  const handleFixSpecificTags = async () => {
+    setIsCheckingIntegrity(true);
+    
+    try {
+      // Obtener tags problemáticos
+      const problematicTags = tags
+        .filter(tag => tag.hasIntegrityIssue)
+        .map(tag => tag.code);
+      
+      if (problematicTags.length === 0) {
+        toast({
+          title: "No hay problemas",
+          description: "No se encontraron tags con problemas de integridad."
+        });
+        return;
+      }
+      
+      const result = await fixSpecificTags(problematicTags);
+      
+      if (result.success) {
+        const fixedTags = result.data.filter(item => item.success && item.action_taken === 'deactivated_orphaned_tag');
+        
+        toast({
+          title: "Tags corregidos",
+          description: `Se corrigieron ${fixedTags.length} tags problemáticos.`
+        });
+        
+        // Recargar datos
+        await loadTags();
+        await loadStats();
+        await checkIntegrityIssues();
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error corrigiendo tags específicos",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsCheckingIntegrity(false);
     }
   };
 
@@ -631,6 +677,37 @@ const AdminDashboard = () => {
               <p className="text-red-200 text-sm mt-2">
                 Ejecuta las migraciones pendientes en Supabase para resolver estos problemas.
               </p>
+            </div>
+          )}
+
+          {/* Problemas de integridad */}
+          {integrityIssues.length > 0 && (
+            <div className="mt-4 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
+              <h3 className="text-yellow-300 font-semibold mb-2 flex items-center">
+                <Wrench className="h-5 w-5 mr-2" />
+                Problemas de Integridad Detectados ({integrityIssues.length})
+              </h3>
+              <div className="space-y-1 text-yellow-200 text-sm mb-3">
+                {integrityIssues.slice(0, 3).map((issue, index) => (
+                  <p key={index}>• {issue.description} - {issue.tag_code || issue.pet_name}</p>
+                ))}
+                {integrityIssues.length > 3 && (
+                  <p>... y {integrityIssues.length - 3} más</p>
+                )}
+              </div>
+              <Button
+                onClick={handleFixSpecificTags}
+                disabled={isCheckingIntegrity}
+                size="sm"
+                className="bg-yellow-600 hover:bg-yellow-700 text-white"
+              >
+                {isCheckingIntegrity ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                ) : (
+                  <Wrench className="h-4 w-4 mr-2" />
+                )}
+                Corregir Problemas
+              </Button>
             </div>
           )}
           
@@ -808,7 +885,7 @@ const AdminDashboard = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">
                               {tag.code}
                               {tag.hasIntegrityIssue && (
-                                <AlertTriangle className="h-4 w-4 text-red-400 inline ml-2\" title="Problema de integridad" />
+                                <AlertTriangle className="h-4 w-4 text-red-400 inline ml-2" title="Problema de integridad" />
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">

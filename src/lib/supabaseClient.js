@@ -394,7 +394,7 @@ export const getAllTagsWithDetails = async () => {
         created_at,
         pet_id,
         user_id,
-        pets:pet_id (id, name, owner_phone),
+        pets:pet_id (id, name, qr_activated),
         users:user_id (email, full_name, phone)
       `)
       .order('created_at', { ascending: false });
@@ -503,6 +503,72 @@ export const getAdminUserVerification = async (email) => {
     
   } catch (error) {
     console.error('Error inesperado verificando usuario:', error);
+    return { success: false, data: null, error: error.message };
+  }
+};
+
+// NUEVA FUNCIÓN: Validar y corregir integridad de datos
+export const validateAndFixIntegrity = async () => {
+  try {
+    console.log('🔧 Validando y corrigiendo integridad de datos...');
+    
+    const { data, error } = await supabase
+      .rpc('validate_tag_pet_integrity');
+    
+    if (error) {
+      console.error('Error validando integridad:', error);
+      return { success: false, data: null, error: error.message };
+    }
+    
+    console.log('🔧 Resultado de validación:', data);
+    return { success: true, data: data || [], error: null };
+    
+  } catch (error) {
+    console.error('Error inesperado validando integridad:', error);
+    return { success: false, data: null, error: error.message };
+  }
+};
+
+// NUEVA FUNCIÓN: Obtener reporte de integridad sin hacer cambios
+export const getIntegrityReport = async () => {
+  try {
+    console.log('📋 Obteniendo reporte de integridad...');
+    
+    const { data, error } = await supabase
+      .rpc('get_integrity_report');
+    
+    if (error) {
+      console.error('Error obteniendo reporte:', error);
+      return { success: false, data: null, error: error.message };
+    }
+    
+    console.log('📋 Reporte de integridad:', data);
+    return { success: true, data: data || [], error: null };
+    
+  } catch (error) {
+    console.error('Error inesperado obteniendo reporte:', error);
+    return { success: false, data: null, error: error.message };
+  }
+};
+
+// NUEVA FUNCIÓN: Corregir tags específicos
+export const fixSpecificTags = async (tagCodes) => {
+  try {
+    console.log('🔧 Corrigiendo tags específicos:', tagCodes);
+    
+    const { data, error } = await supabase
+      .rpc('fix_specific_tags', { tag_codes: tagCodes });
+    
+    if (error) {
+      console.error('Error corrigiendo tags:', error);
+      return { success: false, data: null, error: error.message };
+    }
+    
+    console.log('🔧 Resultado de corrección:', data);
+    return { success: true, data: data || [], error: null };
+    
+  } catch (error) {
+    console.error('Error inesperado corrigiendo tags:', error);
     return { success: false, data: null, error: error.message };
   }
 };
