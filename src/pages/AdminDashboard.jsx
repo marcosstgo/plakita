@@ -224,8 +224,8 @@ const AdminDashboard = () => {
           created_at,
           pet_id,
           user_id,
-          pets:pet_id (id, name),
-          users:user_id (email, full_name)
+          pets:pet_id (id, name, owner_phone),
+          users:user_id (email, full_name, phone)
         `)
         .order('created_at', { ascending: false });
       
@@ -250,9 +250,11 @@ const AdminDashboard = () => {
     }
   };
 
-  // Cargar estadísticas
+  // FUNCIÓN MEJORADA para cargar estadísticas con mejor conteo de usuarios
   const loadStats = async () => {
     try {
+      console.log('📊 Cargando estadísticas...');
+      
       // Contar tags
       const { count: totalTags } = await supabase
         .from('tags')
@@ -268,23 +270,50 @@ const AdminDashboard = () => {
         .from('pets')
         .select('id', { count: 'exact', head: true });
       
-      // Contar usuarios
+      // MEJORADO: Contar usuarios con múltiples estrategias
       let totalUsers = 0;
+      
       try {
-        const { count: usersCount } = await supabase
+        // Estrategia 1: Contar desde public.users
+        const { count: usersCount, error: usersCountError } = await supabase
           .from('users')
           .select('id', { count: 'exact', head: true });
-        totalUsers = usersCount || 0;
+        
+        if (usersCountError) {
+          console.warn('Error contando desde public.users:', usersCountError);
+          
+          // Estrategia 2: Contar usuarios únicos desde tags
+          const { data: uniqueUserIds, error: uniqueUsersError } = await supabase
+            .from('tags')
+            .select('user_id')
+            .not('user_id', 'is', null);
+          
+          if (!uniqueUsersError && uniqueUserIds) {
+            const uniqueIds = [...new Set(uniqueUserIds.map(t => t.user_id))];
+            totalUsers = uniqueIds.length;
+            console.log('📊 Usuarios contados desde tags únicos:', totalUsers);
+          } else {
+            console.warn('Error contando usuarios únicos desde tags:', uniqueUsersError);
+            totalUsers = 0;
+          }
+        } else {
+          totalUsers = usersCount || 0;
+          console.log('📊 Usuarios contados desde public.users:', totalUsers);
+        }
       } catch (error) {
-        console.warn('Could not count users from public.users table');
+        console.warn('Error general contando usuarios:', error);
+        totalUsers = 0;
       }
       
-      setStats({
+      const newStats = {
         totalTags: totalTags || 0,
         activatedTags: activatedTags || 0,
         totalPets: totalPets || 0,
         totalUsers
-      });
+      };
+      
+      console.log('📊 Estadísticas finales:', newStats);
+      setStats(newStats);
       
     } catch (error) {
       console.error('Error loading stats:', error);
