@@ -86,7 +86,7 @@ const ActivateTagPage = () => {
     setIsCreatingTestTags(true);
     
     try {
-      const result = await createTestTags(3);
+      const result = await createTestTags(5); // Crear 5 tags de prueba
       
       if (result.success) {
         toast({
@@ -419,6 +419,7 @@ const ActivateTagPage = () => {
                     onClick={() => handleDebugSearch(tagCode)}
                     className="bg-yellow-600 hover:bg-yellow-700 text-white px-4"
                     disabled={!tagCode.trim()}
+                    title="Debug: Ver información de la base de datos"
                   >
                     <Bug className="h-5 w-5" />
                   </Button>
@@ -427,7 +428,10 @@ const ActivateTagPage = () => {
                 {/* Información de debug */}
                 {debugInfo && (
                   <div className="mt-4 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
-                    <h4 className="text-yellow-300 font-semibold mb-2">Información de Debug:</h4>
+                    <h4 className="text-yellow-300 font-semibold mb-2 flex items-center">
+                      <Bug className="h-4 w-4 mr-2" />
+                      Información de Debug:
+                    </h4>
                     <div className="text-yellow-200 text-sm space-y-1">
                       <p>• Conexión: {debugInfo.connectionTest ? '✅' : '❌'}</p>
                       <p>• Total de tags en DB: {debugInfo.totalTags}</p>
@@ -439,7 +443,13 @@ const ActivateTagPage = () => {
                           <p>• Códigos disponibles:</p>
                           <div className="ml-2 max-h-20 overflow-y-auto">
                             {debugInfo.allTags.map((tag, i) => (
-                              <p key={i} className="font-mono text-xs">- {tag.code}</p>
+                              <button
+                                key={i}
+                                onClick={() => setTagCode(tag.code)}
+                                className="block font-mono text-xs text-yellow-100 hover:text-white underline cursor-pointer"
+                              >
+                                - {tag.code}
+                              </button>
                             ))}
                           </div>
                         </div>
@@ -451,7 +461,10 @@ const ActivateTagPage = () => {
                 {/* Botón para crear tags de prueba si no hay ninguno */}
                 {debugInfo && debugInfo.totalTags === 0 && (
                   <div className="mt-4 p-4 bg-blue-500/20 border border-blue-500/50 rounded-lg">
-                    <h4 className="text-blue-300 font-semibold mb-2">No hay tags en la base de datos</h4>
+                    <h4 className="text-blue-300 font-semibold mb-2 flex items-center">
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      No hay tags en la base de datos
+                    </h4>
                     <p className="text-blue-200 text-sm mb-3">
                       Parece que no hay Plakitas creadas. Crea algunas de prueba para comenzar.
                     </p>
