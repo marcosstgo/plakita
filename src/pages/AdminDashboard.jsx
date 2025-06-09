@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Tag, Users, QrCode, Heart, AlertTriangle, ShieldCheck, RefreshCw, Download, Eye, Trash2, TestTube, Chrome as Broom, Database, Bug, Wrench } from 'lucide-react';
+import { Plus, Tag, Users, QrCode, Heart, AlertTriangle, ShieldCheck, RefreshCw, Download, Eye, Trash2, TestTube, Chrome as Broom, Database, Bug, Wrench, CheckCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -56,6 +56,7 @@ const AdminDashboard = () => {
   // Estados para integridad
   const [integrityIssues, setIntegrityIssues] = useState([]);
   const [isCheckingIntegrity, setIsCheckingIntegrity] = useState(false);
+  const [integrityScore, setIntegrityScore] = useState(100);
 
   // Verificar si el usuario es admin
   useEffect(() => {
@@ -201,7 +202,8 @@ const AdminDashboard = () => {
       await Promise.all([
         loadTags(),
         loadStats(),
-        checkIntegrityIssues()
+        checkIntegrityIssues(),
+        verifyIntegrityScore()
       ]);
       
     } catch (error) {
@@ -308,6 +310,19 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error('Error checking integrity:', error);
       setIntegrityIssues([]);
+    }
+  };
+
+  // Verificar puntuación de integridad
+  const verifyIntegrityScore = async () => {
+    try {
+      const { data, error } = await supabase.rpc('verify_dashboard_integrity');
+      
+      if (!error && data && data.length > 0) {
+        setIntegrityScore(data[0].integrity_score || 100);
+      }
+    } catch (error) {
+      console.error('Error verifying integrity score:', error);
     }
   };
 
@@ -433,39 +448,47 @@ const AdminDashboard = () => {
     }
   };
 
-  // NUEVA FUNCIÓN: Corregir integridad de datos
+  // FUNCIÓN MEJORADA: Corregir integridad usando nueva función específica
   const handleFixIntegrity = async () => {
     setIsFixingIntegrity(true);
     
     try {
-      const result = await validateAndFixIntegrity();
+      // Usar la nueva función específica para problemas del dashboard
+      const { data, error } = await supabase.rpc('fix_dashboard_integrity_issues');
       
-      if (result.success) {
-        const issues = result.data || [];
-        const fixedCount = issues.filter(issue => issue.action_taken !== 'no_integrity_issues_found').length;
-        
-        if (fixedCount > 0) {
-          toast({
-            title: "Integridad corregida",
-            description: `Se corrigieron ${fixedCount} problemas de integridad.`
-          });
-        } else {
-          toast({
-            title: "Integridad verificada",
-            description: "No se encontraron problemas de integridad."
-          });
-        }
-        
-        // Recargar datos
-        await loadTags();
-        await loadStats();
-        await checkIntegrityIssues();
-      } else {
-        throw new Error(result.error);
+      if (error) {
+        throw new Error(error.message);
       }
+      
+      const issues = data || [];
+      const fixedCount = issues.filter(issue => issue.success && issue.action_taken !== 'No se encontraron problemas de integridad').length;
+      
+      if (fixedCount > 0) {
+        toast({
+          title: "Problemas corregidos",
+          description: `Se corrigieron ${fixedCount} problemas de integridad en el dashboard.`
+        });
+        
+        // Mostrar detalles de lo que se corrigió
+        const fixedIssues = issues.filter(issue => issue.success);
+        console.log('✅ Problemas corregidos:', fixedIssues);
+      } else {
+        toast({
+          title: "Integridad verificada",
+          description: "No se encontraron problemas de integridad."
+        });
+      }
+      
+      // Recargar todos los datos
+      await loadTags();
+      await loadStats();
+      await checkIntegrityIssues();
+      await verifyIntegrityScore();
+      
     } catch (error) {
+      console.error('Error fixing integrity:', error);
       toast({
-        title: "Error verificando integridad",
+        title: "Error corrigiendo integridad",
         description: error.message,
         variant: "destructive"
       });
@@ -649,14 +672,40 @@ const AdminDashboard = () => {
             </p>
           </div>
 
-          {/* Problemas de integridad */}
-          {integrityIssues.length > 0 && (
+          {/* Puntuación de integridad */}
+          {integrityScore < 100 && (
             <div className="mt-4 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
               <h3 className="text-yellow-300 font-semibold mb-2 flex items-center">
                 <Wrench className="h-5 w-5 mr-2" />
+                Puntuación de Integridad: {integrityScore}%
+              </h3>
+              <p className="text-yellow-200 text-sm mb-3">
+                Se detectaron problemas de integridad en los datos. Se recomienda ejecutar la corrección automática.
+              </p>
+              <Button
+                onClick={handleFixIntegrity}
+                disabled={isFixingIntegrity}
+                size="sm"
+                className="bg-yellow-600 hover:bg-yellow-700 text-white"
+              >
+                {isFixingIntegrity ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                ) : (
+                  <Wrench className="h-4 w-4 mr-2" />
+                )}
+                Corregir Automáticamente
+              </Button>
+            </div>
+          )}
+
+          {/* Problemas de integridad */}
+          {integrityIssues.length > 0 && (
+            <div className="mt-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
+              <h3 className="text-red-300 font-semibold mb-2 flex items-center">
+                <AlertTriangle className="h-5 w-5 mr-2" />
                 Problemas de Integridad Detectados ({integrityIssues.length})
               </h3>
-              <div className="space-y-1 text-yellow-200 text-sm mb-3">
+              <div className="space-y-1 text-red-200 text-sm mb-3">
                 {integrityIssues.slice(0, 3).map((issue, index) => (
                   <p key={index}>• {issue.description} - {issue.tag_code || issue.pet_name}</p>
                 ))}
@@ -668,7 +717,7 @@ const AdminDashboard = () => {
                 onClick={handleFixSpecificTags}
                 disabled={isCheckingIntegrity}
                 size="sm"
-                className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                className="bg-red-600 hover:bg-red-700 text-white"
               >
                 {isCheckingIntegrity ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -872,7 +921,7 @@ const AdminDashboard = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">
                               {tag.code}
                               {tag.hasIntegrityIssue && (
-                                <AlertTriangle className="h-4 w-4 text-red-400 inline ml-2\" title="Problema de integridad" />
+                                <AlertTriangle className="h-4 w-4 text-red-400 inline ml-2" title="Problema de integridad" />
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -886,16 +935,30 @@ const AdminDashboard = () => {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               {tag.pets?.name ? (
-                                <span className="text-purple-300">{tag.pets.name}</span>
+                                <div>
+                                  <span className="text-purple-300 font-medium">{tag.pets.name}</span>
+                                  <br />
+                                  <span className="text-white/60 text-xs">
+                                    Dueño: {tag.pets.owner_name || 'No especificado'}
+                                  </span>
+                                </div>
                               ) : (
                                 <span className={`text-white/50 ${tag.hasIntegrityIssue ? 'text-red-300' : ''}`}>
-                                  {tag.hasIntegrityIssue ? 'ERROR: Sin mascota' : 'N/A'}
+                                  {tag.hasIntegrityIssue ? 'ERROR: Sin mascota' : 'Sin asignar'}
                                 </span>
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               {tag.users?.email ? (
-                                <span className="text-white/80">{tag.users.email}</span>
+                                <div>
+                                  <span className="text-white/80">{tag.users.email}</span>
+                                  {tag.users.full_name && (
+                                    <>
+                                      <br />
+                                      <span className="text-white/60 text-xs">{tag.users.full_name}</span>
+                                    </>
+                                  )}
+                                </div>
                               ) : (
                                 <span className={`text-white/50 ${tag.isOrphaned && tag.activated ? 'text-yellow-300' : ''}`}>
                                   {tag.isOrphaned && tag.activated ? 'Sin usuario' : 'Sin asignar'}
