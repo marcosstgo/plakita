@@ -385,7 +385,78 @@ export const getUserTagsWithPets = async (userId) => {
 // FUNCIÓN COMPLETAMENTE REESCRITA para obtener todos los tags para admin
 export const getAllTagsWithDetails = async () => {
   try {
-    console.log('🔍 Obteniendo todos los tags con detalles...');
+    console.log('🔍 Obteniendo todos los tags con detalles para admin...');
+    
+    // Usar la nueva función específica del dashboard de admin
+    const { data, error } = await supabase
+      .rpc('get_admin_dashboard_data');
+    
+    if (error) {
+      console.error('Error obteniendo datos del dashboard admin:', error);
+      
+      // Fallback al método anterior si la función no está disponible
+      console.log('🔄 Usando método fallback...');
+      return await getAllTagsWithDetailsFallback();
+    }
+    
+    if (!data || data.length === 0) {
+      console.log('📋 No se encontraron tags');
+      return { success: true, data: [], error: null };
+    }
+    
+    // Transformar los datos al formato esperado por el componente
+    const transformedData = data.map(row => ({
+      id: row.tag_id,
+      code: row.tag_code,
+      activated: row.tag_activated,
+      created_at: row.tag_created_at,
+      pet_id: row.pet_id,
+      user_id: row.user_id,
+      pets: row.pet_id ? {
+        id: row.pet_id,
+        name: row.pet_name,
+        type: row.pet_type,
+        qr_activated: row.pet_qr_activated,
+        owner_name: row.owner_name,
+        owner_contact: row.owner_contact,
+        owner_phone: row.owner_phone
+      } : null,
+      users: row.user_id ? {
+        id: row.user_id,
+        email: row.user_email,
+        full_name: row.user_full_name
+      } : null,
+      statusText: row.status_text,
+      hasIntegrityIssue: row.has_integrity_issue,
+      isOrphaned: row.tag_activated && !row.user_id,
+      hasValidPet: !!row.pet_id,
+      hasValidUser: !!row.user_id
+    }));
+    
+    console.log('✅ Tags procesados con detalles desde función admin:', transformedData.length);
+    
+    // Log de problemas encontrados
+    const problemTags = transformedData.filter(tag => tag.hasIntegrityIssue);
+    if (problemTags.length > 0) {
+      console.warn(`⚠️ Se encontraron ${problemTags.length} tags con problemas de integridad:`, 
+        problemTags.map(t => ({ code: t.code, issue: t.statusText }))
+      );
+    }
+    
+    return { success: true, data: transformedData, error: null };
+    
+  } catch (error) {
+    console.error('❌ Error inesperado obteniendo tags con detalles:', error);
+    
+    // Fallback en caso de error
+    return await getAllTagsWithDetailsFallback();
+  }
+};
+
+// Función fallback para cuando la función de admin no está disponible
+const getAllTagsWithDetailsFallback = async () => {
+  try {
+    console.log('🔄 Ejecutando método fallback para obtener tags...');
     
     // Primero obtener todos los tags
     const { data: allTags, error: tagsError } = await supabase
@@ -478,20 +549,12 @@ export const getAllTagsWithDetails = async () => {
       })
     );
     
-    console.log('✅ Tags procesados con detalles:', tagsWithDetails.length);
-    
-    // Log de problemas encontrados
-    const problemTags = tagsWithDetails.filter(tag => tag.hasIntegrityIssue);
-    if (problemTags.length > 0) {
-      console.warn(`⚠️ Se encontraron ${problemTags.length} tags con problemas de integridad:`, 
-        problemTags.map(t => ({ code: t.code, issue: t.statusText }))
-      );
-    }
+    console.log('✅ Tags procesados con detalles (fallback):', tagsWithDetails.length);
     
     return { success: true, data: tagsWithDetails, error: null };
     
   } catch (error) {
-    console.error('❌ Error inesperado obteniendo tags con detalles:', error);
+    console.error('❌ Error en método fallback:', error);
     return { success: false, data: [], error: error.message };
   }
 };
