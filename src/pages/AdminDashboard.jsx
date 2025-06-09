@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Tag, Users, QrCode, Heart, AlertTriangle, ShieldCheck, RefreshCw, Download, Eye, Trash2, TestTube, Chrome as Broom } from 'lucide-react';
+import { Plus, Tag, Users, QrCode, Heart, AlertTriangle, ShieldCheck, RefreshCw, Download, Eye, Trash2, TestTube, Chrome as Broom, Database, Bug } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -51,6 +51,7 @@ const AdminDashboard = () => {
   // Estados para testing
   const [isCreatingTestTags, setIsCreatingTestTags] = useState(false);
   const [isCleaningTestTags, setIsCleaningTestTags] = useState(false);
+  const [isFixingIntegrity, setIsFixingIntegrity] = useState(false);
 
   // Verificar si el usuario es admin
   useEffect(() => {
@@ -212,7 +213,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // Cargar tags con información relacionada
+  // Cargar tags con información relacionada - MEJORADO para mostrar problemas de integridad
   const loadTags = async () => {
     try {
       const { data: tagsData, error } = await supabase
@@ -224,14 +225,29 @@ const AdminDashboard = () => {
           created_at,
           pet_id,
           user_id,
-          pets:pet_id (id, name, owner_phone),
+          pets:pet_id (id, name, qr_activated),
           users:user_id (email, full_name, phone)
         `)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       
-      setTags(tagsData || []);
+      // Procesar datos para detectar problemas de integridad
+      const processedTags = (tagsData || []).map(tag => {
+        const hasIntegrityIssue = tag.activated && !tag.pets;
+        const isOrphaned = tag.activated && !tag.user_id;
+        
+        return {
+          ...tag,
+          hasIntegrityIssue,
+          isOrphaned,
+          statusText: tag.activated 
+            ? (hasIntegrityIssue ? 'Activado (Sin Mascota)' : 'Activado') 
+            : 'No Activado'
+        };
+      });
+      
+      setTags(processedTags);
     } catch (error) {
       console.error('Error loading tags:', error);
       // Fallback: cargar solo datos básicos
@@ -445,6 +461,76 @@ const AdminDashboard = () => {
       });
     } finally {
       setIsCleaningTestTags(false);
+    }
+  };
+
+  // NUEVA FUNCIÓN: Corregir integridad de datos
+  const handleFixIntegrity = async () => {
+    setIsFixingIntegrity(true);
+    
+    try {
+      // Ejecutar función de validación de integridad
+      const { data: issues, error } = await supabase.rpc('validate_tag_pet_integrity');
+      
+      if (error) {
+        console.warn('Función de validación no disponible, usando método alternativo');
+        
+        // Método alternativo: corregir tags activados sin mascota
+        const { data: orphanedTags, error: orphanError } = await supabase
+          .from('tags')
+          .select('id, code')
+          .eq('activated', true)
+          .is('pet_id', null);
+        
+        if (!orphanError && orphanedTags && orphanedTags.length > 0) {
+          // Desactivar tags huérfanos
+          const { error: updateError } = await supabase
+            .from('tags')
+            .update({ activated: false, activated_at: null, user_id: null })
+            .eq('activated', true)
+            .is('pet_id', null);
+          
+          if (updateError) throw updateError;
+          
+          toast({
+            title: "Integridad corregida",
+            description: `Se desactivaron ${orphanedTags.length} tags sin mascota asociada.`
+          });
+        } else {
+          toast({
+            title: "Integridad verificada",
+            description: "No se encontraron problemas de integridad."
+          });
+        }
+      } else {
+        const issueCount = issues?.length || 0;
+        if (issueCount > 0) {
+          toast({
+            title: "Problemas detectados",
+            description: `Se encontraron ${issueCount} problemas de integridad. Revisa la consola para detalles.`,
+            variant: "destructive"
+          });
+          console.log('Problemas de integridad encontrados:', issues);
+        } else {
+          toast({
+            title: "Integridad verificada",
+            description: "No se encontraron problemas de integridad."
+          });
+        }
+      }
+      
+      // Recargar datos
+      await loadTags();
+      await loadStats();
+      
+    } catch (error) {
+      toast({
+        title: "Error verificando integridad",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsFixingIntegrity(false);
     }
   };
 
@@ -695,6 +781,19 @@ const AdminDashboard = () => {
                   )}
                   Limpiar Pruebas
                 </Button>
+                
+                <Button 
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={handleFixIntegrity}
+                  disabled={isFixingIntegrity || schemaErrors.length > 0}
+                >
+                  {isFixingIntegrity ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  ) : (
+                    <Database className="h-4 w-4 mr-2" />
+                  )}
+                  Corregir Integridad
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -750,27 +849,40 @@ const AdminDashboard = () => {
                       </thead>
                       <tbody className="bg-white/10 divide-y divide-purple-500/20">
                         {tags.map((tag) => (
-                          <tr key={tag.id} className="hover:bg-white/20 transition-colors duration-150">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">{tag.code}</td>
+                          <tr key={tag.id} className={`hover:bg-white/20 transition-colors duration-150 ${
+                            tag.hasIntegrityIssue ? 'bg-red-500/10' : ''
+                          }`}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">
+                              {tag.code}
+                              {tag.hasIntegrityIssue && (
+                                <AlertTriangle className="h-4 w-4 text-red-400 inline ml-2" title="Problema de integridad" />
+                              )}
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                tag.activated ? 'bg-green-500/80 text-green-50' : 'bg-yellow-500/80 text-yellow-50'
+                                tag.activated 
+                                  ? (tag.hasIntegrityIssue ? 'bg-red-500/80 text-red-50' : 'bg-green-500/80 text-green-50')
+                                  : 'bg-yellow-500/80 text-yellow-50'
                               }`}>
-                                {tag.activated ? 'Activado' : 'No Activado'}
+                                {tag.statusText || (tag.activated ? 'Activado' : 'No Activado')}
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               {tag.pets?.name ? (
                                 <span className="text-purple-300">{tag.pets.name}</span>
                               ) : (
-                                <span className="text-white/50">N/A</span>
+                                <span className={`text-white/50 ${tag.hasIntegrityIssue ? 'text-red-300' : ''}`}>
+                                  {tag.hasIntegrityIssue ? 'ERROR: Sin mascota' : 'N/A'}
+                                </span>
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               {tag.users?.email ? (
                                 <span className="text-white/80">{tag.users.email}</span>
                               ) : (
-                                <span className="text-white/50">Sin asignar</span>
+                                <span className={`text-white/50 ${tag.isOrphaned && tag.activated ? 'text-yellow-300' : ''}`}>
+                                  {tag.isOrphaned && tag.activated ? 'Sin usuario' : 'Sin asignar'}
+                                </span>
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-white/70">
