@@ -382,25 +382,116 @@ export const getUserTagsWithPets = async (userId) => {
   }
 };
 
-// FUNCIÓN MEJORADA para obtener todos los tags para admin usando función segura
+// FUNCIÓN COMPLETAMENTE REESCRITA para obtener todos los tags para admin
 export const getAllTagsWithDetails = async () => {
   try {
-    const { data, error } = await supabase
+    console.log('🔍 Obteniendo todos los tags con detalles...');
+    
+    // Primero obtener todos los tags
+    const { data: allTags, error: tagsError } = await supabase
       .from('tags')
-      .select(`
-        id,
-        code,
-        activated,
-        created_at,
-        pet_id,
-        user_id,
-        pets:pet_id (id, name, qr_activated),
-        users:user_id (email, full_name, phone)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
     
-    return { success: !error, data: data || [], error: error?.message };
+    if (tagsError) {
+      console.error('Error obteniendo tags:', tagsError);
+      return { success: false, data: [], error: tagsError.message };
+    }
+    
+    console.log(`📋 Se encontraron ${allTags?.length || 0} tags`);
+    
+    if (!allTags || allTags.length === 0) {
+      return { success: true, data: [], error: null };
+    }
+    
+    // Procesar cada tag individualmente para obtener datos relacionados
+    const tagsWithDetails = await Promise.all(
+      allTags.map(async (tag) => {
+        let petData = null;
+        let userData = null;
+        
+        // Obtener datos de la mascota si existe pet_id
+        if (tag.pet_id) {
+          try {
+            const { data: pet, error: petError } = await supabase
+              .from('pets')
+              .select('id, name, type, breed, qr_activated, owner_name, owner_contact, owner_phone')
+              .eq('id', tag.pet_id)
+              .maybeSingle();
+            
+            if (!petError && pet) {
+              petData = pet;
+            } else if (petError) {
+              console.warn(`Error obteniendo pet ${tag.pet_id}:`, petError);
+            }
+          } catch (error) {
+            console.warn(`Error inesperado obteniendo pet ${tag.pet_id}:`, error);
+          }
+        }
+        
+        // Obtener datos del usuario si existe user_id
+        if (tag.user_id) {
+          try {
+            const { data: user, error: userError } = await supabase
+              .from('users')
+              .select('id, email, full_name, phone')
+              .eq('id', tag.user_id)
+              .maybeSingle();
+            
+            if (!userError && user) {
+              userData = user;
+            } else if (userError) {
+              console.warn(`Error obteniendo user ${tag.user_id}:`, userError);
+            }
+          } catch (error) {
+            console.warn(`Error inesperado obteniendo user ${tag.user_id}:`, error);
+          }
+        }
+        
+        // Determinar el estado real del tag
+        const hasValidPet = petData !== null;
+        const hasValidUser = userData !== null;
+        const hasIntegrityIssue = tag.activated && !hasValidPet;
+        const isOrphaned = tag.activated && !hasValidUser;
+        
+        let statusText = 'No Activado';
+        if (tag.activated) {
+          if (hasIntegrityIssue) {
+            statusText = 'Activado (Sin Mascota)';
+          } else if (hasValidPet) {
+            statusText = 'Activado';
+          } else {
+            statusText = 'Activado (Error)';
+          }
+        }
+        
+        return {
+          ...tag,
+          pets: petData,
+          users: userData,
+          hasIntegrityIssue,
+          isOrphaned,
+          statusText,
+          hasValidPet,
+          hasValidUser
+        };
+      })
+    );
+    
+    console.log('✅ Tags procesados con detalles:', tagsWithDetails.length);
+    
+    // Log de problemas encontrados
+    const problemTags = tagsWithDetails.filter(tag => tag.hasIntegrityIssue);
+    if (problemTags.length > 0) {
+      console.warn(`⚠️ Se encontraron ${problemTags.length} tags con problemas de integridad:`, 
+        problemTags.map(t => ({ code: t.code, issue: t.statusText }))
+      );
+    }
+    
+    return { success: true, data: tagsWithDetails, error: null };
+    
   } catch (error) {
+    console.error('❌ Error inesperado obteniendo tags con detalles:', error);
     return { success: false, data: [], error: error.message };
   }
 };

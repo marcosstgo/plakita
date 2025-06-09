@@ -219,33 +219,20 @@ const AdminDashboard = () => {
   // Cargar tags con información relacionada usando función segura
   const loadTags = async () => {
     try {
+      console.log('🔄 Cargando tags con detalles...');
       const result = await getAllTagsWithDetails();
       
       if (!result.success) {
         throw new Error(result.error);
       }
       
-      // Procesar datos para detectar problemas de integridad
-      const processedTags = (result.data || []).map(tag => {
-        const hasIntegrityIssue = tag.activated && !tag.pets;
-        const isOrphaned = tag.activated && !tag.user_id;
-        
-        return {
-          ...tag,
-          hasIntegrityIssue,
-          isOrphaned,
-          statusText: tag.activated 
-            ? (hasIntegrityIssue ? 'Activado (Sin Mascota)' : 'Activado') 
-            : 'No Activado'
-        };
-      });
-      
-      setTags(processedTags);
+      console.log('✅ Tags cargados:', result.data.length);
+      setTags(result.data);
       
       // Contar problemas de integridad
-      const integrityProblems = processedTags.filter(tag => tag.hasIntegrityIssue || tag.isOrphaned);
+      const integrityProblems = result.data.filter(tag => tag.hasIntegrityIssue || tag.isOrphaned);
       if (integrityProblems.length > 0) {
-        console.log('Problemas de integridad encontrados:', integrityProblems);
+        console.log('⚠️ Problemas de integridad encontrados:', integrityProblems);
       }
       
     } catch (error) {
@@ -661,24 +648,6 @@ const AdminDashboard = () => {
               ✅ Conectado como administrador: {user?.email} (ID: {user?.id})
             </p>
           </div>
-          
-          {/* Errores de esquema */}
-          {schemaErrors.length > 0 && (
-            <div className="mt-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
-              <h3 className="text-red-300 font-semibold mb-2 flex items-center">
-                <AlertTriangle className="h-5 w-5 mr-2" />
-                Errores de Esquema de Base de Datos
-              </h3>
-              <ul className="text-red-200 text-sm space-y-1">
-                {schemaErrors.map((error, index) => (
-                  <li key={index}>• {error}</li>
-                ))}
-              </ul>
-              <p className="text-red-200 text-sm mt-2">
-                Ejecuta las migraciones pendientes en Supabase para resolver estos problemas.
-              </p>
-            </div>
-          )}
 
           {/* Problemas de integridad */}
           {integrityIssues.length > 0 && (
@@ -708,6 +677,24 @@ const AdminDashboard = () => {
                 )}
                 Corregir Problemas
               </Button>
+            </div>
+          )}
+          
+          {/* Errores de esquema */}
+          {schemaErrors.length > 0 && (
+            <div className="mt-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
+              <h3 className="text-red-300 font-semibold mb-2 flex items-center">
+                <AlertTriangle className="h-5 w-5 mr-2" />
+                Errores de Esquema de Base de Datos
+              </h3>
+              <ul className="text-red-200 text-sm space-y-1">
+                {schemaErrors.map((error, index) => (
+                  <li key={index}>• {error}</li>
+                ))}
+              </ul>
+              <p className="text-red-200 text-sm mt-2">
+                Ejecuta las migraciones pendientes en Supabase para resolver estos problemas.
+              </p>
             </div>
           )}
           
@@ -885,7 +872,7 @@ const AdminDashboard = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">
                               {tag.code}
                               {tag.hasIntegrityIssue && (
-                                <AlertTriangle className="h-4 w-4 text-red-400 inline ml-2\" title="Problema de integridad" />
+                                <AlertTriangle className="h-4 w-4 text-red-400 inline ml-2" title="Problema de integridad" />
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
