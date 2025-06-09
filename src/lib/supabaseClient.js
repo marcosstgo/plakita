@@ -334,10 +334,34 @@ export const getAllTagsWithDetails = async () => {
   }
 };
 
-// Nueva función para obtener tag por código
+// FUNCIÓN MEJORADA para obtener tag por código con mejor debugging
 export const getTagByCode = async (code) => {
   try {
-    const { data, error } = await supabase
+    console.log('🔍 Buscando tag con código:', code);
+    
+    // Normalizar el código (mayúsculas y sin espacios)
+    const normalizedCode = code.trim().toUpperCase();
+    console.log('🔍 Código normalizado:', normalizedCode);
+    
+    // Primero, verificar si existen tags en la tabla
+    const { data: allTags, error: allTagsError } = await supabase
+      .from('tags')
+      .select('id, code')
+      .limit(10);
+    
+    if (allTagsError) {
+      console.error('❌ Error consultando todos los tags:', allTagsError);
+      return { success: false, data: null, error: `Error de base de datos: ${allTagsError.message}` };
+    }
+    
+    console.log('📋 Tags existentes en la base de datos:', allTags);
+    
+    // Buscar el tag específico con múltiples estrategias
+    let tagData = null;
+    let searchError = null;
+    
+    // Estrategia 1: Búsqueda exacta (case sensitive)
+    const { data: exactMatch, error: exactError } = await supabase
       .from('tags')
       .select(`
         id,
@@ -358,11 +382,84 @@ export const getTagByCode = async (code) => {
           user_id
         )
       `)
-      .eq('code', code.toUpperCase())
-      .single();
+      .eq('code', normalizedCode)
+      .maybeSingle();
     
-    return { success: !error, data, error: error?.message };
+    if (exactError) {
+      console.error('❌ Error en búsqueda exacta:', exactError);
+      searchError = exactError;
+    } else if (exactMatch) {
+      console.log('✅ Tag encontrado con búsqueda exacta:', exactMatch);
+      tagData = exactMatch;
+    }
+    
+    // Estrategia 2: Búsqueda case-insensitive si no se encontró
+    if (!tagData) {
+      console.log('🔍 Intentando búsqueda case-insensitive...');
+      const { data: iLikeMatch, error: iLikeError } = await supabase
+        .from('tags')
+        .select(`
+          id,
+          code,
+          activated,
+          user_id,
+          pet_id,
+          pets:pet_id (
+            id,
+            name,
+            type,
+            breed,
+            owner_name,
+            owner_contact,
+            owner_phone,
+            notes,
+            qr_activated,
+            user_id
+          )
+        `)
+        .ilike('code', normalizedCode)
+        .maybeSingle();
+      
+      if (iLikeError) {
+        console.error('❌ Error en búsqueda ilike:', iLikeError);
+        searchError = iLikeError;
+      } else if (iLikeMatch) {
+        console.log('✅ Tag encontrado con búsqueda ilike:', iLikeMatch);
+        tagData = iLikeMatch;
+      }
+    }
+    
+    // Estrategia 3: Búsqueda parcial si aún no se encontró
+    if (!tagData) {
+      console.log('🔍 Intentando búsqueda parcial...');
+      const { data: partialMatches, error: partialError } = await supabase
+        .from('tags')
+        .select('id, code')
+        .ilike('code', `%${normalizedCode}%`)
+        .limit(5);
+      
+      if (partialError) {
+        console.error('❌ Error en búsqueda parcial:', partialError);
+      } else if (partialMatches && partialMatches.length > 0) {
+        console.log('🔍 Tags similares encontrados:', partialMatches);
+      }
+    }
+    
+    if (!tagData) {
+      console.log('❌ Tag no encontrado después de todas las estrategias');
+      return { 
+        success: false, 
+        data: null, 
+        error: `No se encontró tag con código "${code}". Códigos disponibles: ${allTags.map(t => t.code).join(', ')}`,
+        availableTags: allTags
+      };
+    }
+    
+    console.log('✅ Tag encontrado exitosamente:', tagData);
+    return { success: true, data: tagData, error: null };
+    
   } catch (error) {
+    console.error('💥 Error inesperado en getTagByCode:', error);
     return { success: false, data: null, error: error.message };
   }
 };
@@ -370,6 +467,8 @@ export const getTagByCode = async (code) => {
 // Nueva función para activar tag con mascota - ACTUALIZADA para incluir owner_phone
 export const activateTagWithPet = async (tagId, petData, userId) => {
   try {
+    console.log('🐕 Activando tag con datos:', { tagId, petData, userId });
+    
     // Primero crear o actualizar la mascota
     let petId = petData.id;
     
@@ -393,6 +492,7 @@ export const activateTagWithPet = async (tagId, petData, userId) => {
       
       if (petError) throw petError;
       petId = newPet.id;
+      console.log('✅ Nueva mascota creada con ID:', petId);
     } else {
       // Actualizar mascota existente
       const { error: updateError } = await supabase
@@ -411,6 +511,7 @@ export const activateTagWithPet = async (tagId, petData, userId) => {
         .eq('user_id', userId);
       
       if (updateError) throw updateError;
+      console.log('✅ Mascota actualizada con ID:', petId);
     }
     
     // Luego actualizar el tag
@@ -428,9 +529,10 @@ export const activateTagWithPet = async (tagId, petData, userId) => {
     
     if (tagError) throw tagError;
     
+    console.log('✅ Tag actualizado exitosamente:', updatedTag);
     return { success: true, data: { tag: updatedTag, petId }, error: null };
   } catch (error) {
-    console.error('Error activating tag with pet:', error);
+    console.error('❌ Error activating tag with pet:', error);
     return { success: false, data: null, error: error.message };
   }
 };
@@ -500,6 +602,55 @@ export const verifyAndSyncUser = async (email) => {
     
   } catch (error) {
     console.error('Error en verificación:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Nueva función para debugging de tags
+export const debugTagSearch = async (code) => {
+  try {
+    console.log('🐛 DEBUG: Iniciando búsqueda de tag:', code);
+    
+    // 1. Verificar conexión
+    const { data: connectionTest, error: connectionError } = await supabase
+      .from('tags')
+      .select('count')
+      .limit(1);
+    
+    console.log('🐛 DEBUG: Test de conexión:', { connectionTest, connectionError });
+    
+    // 2. Obtener todos los tags
+    const { data: allTags, error: allTagsError } = await supabase
+      .from('tags')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    console.log('🐛 DEBUG: Todos los tags:', { count: allTags?.length, allTags, allTagsError });
+    
+    // 3. Buscar tag específico
+    const normalizedCode = code.trim().toUpperCase();
+    const { data: specificTag, error: specificError } = await supabase
+      .from('tags')
+      .select('*')
+      .eq('code', normalizedCode)
+      .maybeSingle();
+    
+    console.log('🐛 DEBUG: Búsqueda específica:', { normalizedCode, specificTag, specificError });
+    
+    return {
+      success: true,
+      debug: {
+        connectionTest: !connectionError,
+        totalTags: allTags?.length || 0,
+        allTags: allTags || [],
+        searchCode: normalizedCode,
+        foundTag: specificTag,
+        searchError: specificError?.message
+      }
+    };
+    
+  } catch (error) {
+    console.error('🐛 DEBUG: Error en debugging:', error);
     return { success: false, error: error.message };
   }
 };

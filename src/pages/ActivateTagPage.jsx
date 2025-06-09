@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Tag, PawPrint, UserCircle, Phone, Mail, Edit3, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Tag, PawPrint, UserCircle, Phone, Mail, Edit3, AlertTriangle, CheckCircle, Bug } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
-import { getTagByCode, activateTagWithPet } from '@/lib/supabaseClient';
+import { getTagByCode, activateTagWithPet, debugTagSearch } from '@/lib/supabaseClient';
 import { validatePetForm, sanitizePetFormData } from '@/components/forms/PetFormValidation';
 import FormErrorDisplay from '@/components/forms/FormErrorDisplay';
 
@@ -28,6 +28,7 @@ const ActivateTagPage = () => {
   const [isFetchingTag, setIsFetchingTag] = useState(false);
   const [showPetForm, setShowPetForm] = useState(false);
   const [formErrors, setFormErrors] = useState({});
+  const [debugInfo, setDebugInfo] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '', 
@@ -59,27 +60,64 @@ const ActivateTagPage = () => {
     }
   }, [user, showPetForm]);
 
+  const handleDebugSearch = async (currentTagCode) => {
+    console.log('🐛 Iniciando debug para código:', currentTagCode);
+    try {
+      const debugResult = await debugTagSearch(currentTagCode);
+      setDebugInfo(debugResult.debug);
+      console.log('🐛 Resultado del debug:', debugResult);
+      
+      toast({
+        title: "Debug completado",
+        description: `Se encontraron ${debugResult.debug?.totalTags || 0} tags en total. Ver consola para detalles.`
+      });
+    } catch (error) {
+      console.error('🐛 Error en debug:', error);
+      toast({
+        title: "Error en debug",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleFetchTagInfo = async (currentTagCode) => {
     if (!currentTagCode || currentTagCode.trim() === '') {
       toast({ title: "Entrada requerida", description: "Por favor, ingresa un código de Plakita.", variant: "default" });
       return;
     }
+    
     setIsFetchingTag(true);
     setIsLoading(true); 
     setPetInfo(null); 
     setTagInfo(null); 
     setShowPetForm(false);
     setFormErrors({});
+    setDebugInfo(null);
 
     const upperCaseTagCode = currentTagCode.trim().toUpperCase();
+    console.log('🔍 Buscando tag:', upperCaseTagCode);
 
     try {
       const result = await getTagByCode(upperCaseTagCode);
+      console.log('📋 Resultado de búsqueda:', result);
       
       if (!result.success || !result.data) {
+        console.log('❌ Tag no encontrado, ejecutando debug...');
+        
+        // Ejecutar debug automáticamente cuando no se encuentra el tag
+        await handleDebugSearch(upperCaseTagCode);
+        
+        let errorMessage = `No se encontró una Plakita con el código "${upperCaseTagCode}".`;
+        
+        if (result.availableTags && result.availableTags.length > 0) {
+          const availableCodes = result.availableTags.map(t => t.code).join(', ');
+          errorMessage += ` Códigos disponibles: ${availableCodes}`;
+        }
+        
         toast({ 
           title: "Plakita no encontrada", 
-          description: `No se encontró una Plakita con el código "${upperCaseTagCode}". Verifica el código o contacta soporte.`, 
+          description: errorMessage, 
           variant: "destructive" 
         });
         return;
@@ -87,6 +125,7 @@ const ActivateTagPage = () => {
 
       const fetchedTagData = result.data;
       setTagInfo(fetchedTagData);
+      console.log('✅ Tag encontrado:', fetchedTagData);
       
       // Si el tag tiene una mascota asociada
       if (fetchedTagData.pets) {
@@ -168,7 +207,7 @@ const ActivateTagPage = () => {
         }
       }
     } catch (error) {
-      console.error('Error fetching tag info:', error);
+      console.error('💥 Error fetching tag info:', error);
       toast({ 
         title: "Error", 
         description: `Error buscando Plakita: ${error.message}`, 
@@ -324,18 +363,54 @@ const ActivateTagPage = () => {
                     autoFocus
                   />
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full bg-white text-purple-600 hover:bg-purple-200 font-bold py-3 text-lg"
-                  disabled={isFetchingTag}
-                >
-                  {isFetchingTag ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mr-2"></div>
-                  ) : (
-                    <CheckCircle className="h-5 w-5 mr-2" />
-                  )}
-                  Buscar Plakita
-                </Button>
+                
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-white text-purple-600 hover:bg-purple-200 font-bold py-3 text-lg"
+                    disabled={isFetchingTag}
+                  >
+                    {isFetchingTag ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mr-2"></div>
+                    ) : (
+                      <CheckCircle className="h-5 w-5 mr-2" />
+                    )}
+                    Buscar Plakita
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    onClick={() => handleDebugSearch(tagCode)}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white px-4"
+                    disabled={!tagCode.trim()}
+                  >
+                    <Bug className="h-5 w-5" />
+                  </Button>
+                </div>
+                
+                {/* Información de debug */}
+                {debugInfo && (
+                  <div className="mt-4 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
+                    <h4 className="text-yellow-300 font-semibold mb-2">Información de Debug:</h4>
+                    <div className="text-yellow-200 text-sm space-y-1">
+                      <p>• Conexión: {debugInfo.connectionTest ? '✅' : '❌'}</p>
+                      <p>• Total de tags en DB: {debugInfo.totalTags}</p>
+                      <p>• Código buscado: {debugInfo.searchCode}</p>
+                      <p>• Tag encontrado: {debugInfo.foundTag ? '✅' : '❌'}</p>
+                      {debugInfo.searchError && <p>• Error: {debugInfo.searchError}</p>}
+                      {debugInfo.allTags && debugInfo.allTags.length > 0 && (
+                        <div>
+                          <p>• Códigos disponibles:</p>
+                          <div className="ml-2 max-h-20 overflow-y-auto">
+                            {debugInfo.allTags.map((tag, i) => (
+                              <p key={i} className="font-mono text-xs">- {tag.code}</p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </form>
             )}
 
