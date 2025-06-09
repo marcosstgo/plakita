@@ -885,7 +885,7 @@ const AdminDashboard = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">
                               {tag.code}
                               {tag.hasIntegrityIssue && (
-                                <AlertTriangle className="h-4 w-4 text-red-400 inline ml-2" title="Problema de integridad" />
+                                <AlertTriangle className="h-4 w-4 text-red-400 inline ml-2\" title="Problema de integridad" />
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
