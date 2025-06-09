@@ -1,87 +1,53 @@
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, getAdminUsersList, getAdminUserVerification } from '@/lib/supabaseClient';
 
-// Función para verificar permisos desde el admin panel con manejo de errores mejorado
+// Función para verificar permisos desde el admin panel usando funciones seguras
 export const adminVerifyUser = async (email) => {
   try {
     console.log(`🔐 [ADMIN] Verificando usuario: ${email}`);
     
-    // Buscar en public.users
-    const { data: publicUser, error: publicError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (publicError) {
-      console.error('Error en consulta public.users:', publicError);
-      return { error: `Error consultando public.users: ${publicError.message}` };
-    }
-
-    // Si no se encuentra en public.users, buscar usuarios similares
-    if (!publicUser) {
-      console.log('🔍 Usuario no encontrado en public.users, buscando similares...');
+    const result = await getAdminUserVerification(email);
+    
+    if (!result.success) {
+      // Si no se encuentra, buscar usuarios similares
+      console.log('🔍 Usuario no encontrado, buscando similares...');
       
-      // Buscar emails similares (case insensitive)
-      const { data: similarUsers, error: similarError } = await supabase
-        .from('users')
-        .select('email, full_name, id')
-        .ilike('email', `%${email.split('@')[0]}%`);
-
-      if (similarError) {
-        console.error('Error buscando usuarios similares:', similarError);
+      const listResult = await getAdminUsersList();
+      if (listResult.success) {
+        const similarUsers = listResult.data.filter(user => 
+          user.email.toLowerCase().includes(email.toLowerCase().split('@')[0])
+        );
+        
+        return { 
+          found: false,
+          error: result.error || 'Usuario no encontrado',
+          suggestions: {
+            similarEmails: similarUsers.slice(0, 5),
+            message: `No se encontró el usuario "${email}". Verifica que el email sea correcto o que el usuario se haya registrado en el sistema.`
+          }
+        };
       }
-
+      
       return { 
         found: false,
-        error: 'Usuario no encontrado en public.users',
-        suggestions: {
-          similarEmails: similarUsers || [],
-          message: `No se encontró el usuario "${email}". Verifica que el email sea correcto o que el usuario se haya registrado en el sistema.`
-        }
+        error: result.error || 'Usuario no encontrado'
       };
     }
 
-    // Si se encuentra, obtener toda la información
-    const { data: userTags, error: tagsError } = await supabase
-      .from('tags')
-      .select(`
-        id, 
-        code, 
-        activated, 
-        created_at, 
-        pet_id,
-        pets:pet_id (id, name, type)
-      `)
-      .eq('user_id', publicUser.id);
-
-    if (tagsError) {
-      console.error('Error consultando tags:', tagsError);
-    }
-
-    const { data: userPets, error: petsError } = await supabase
-      .from('pets')
-      .select('*')
-      .eq('user_id', publicUser.id);
-
-    if (petsError) {
-      console.error('Error consultando pets:', petsError);
-    }
-
     // Verificar si es admin
-    const ADMIN_USER_ID = '08c4845d-28e2-4a9a-b05d-350fac947b28';
-    const isAdmin = publicUser.id === ADMIN_USER_ID;
+    const ADMIN_USER_ID = '3d4b3b56-fba6-4d76-866c-f38551c7a6c4';
+    const isAdmin = result.data.user.id === ADMIN_USER_ID || result.data.user.email === 'santiago.marcos@gmail.com';
 
-    const result = {
+    const finalResult = {
       found: true,
-      user: publicUser,
-      tags: userTags || [],
-      pets: userPets || [],
+      user: result.data.user,
+      tags: result.data.tags || [],
+      pets: result.data.pets || [],
       isAdmin,
-      stats: {
-        totalTags: userTags?.length || 0,
-        activatedTags: userTags?.filter(tag => tag.activated)?.length || 0,
-        totalPets: userPets?.length || 0,
-        activatedPets: userPets?.filter(pet => pet.qr_activated)?.length || 0
+      stats: result.data.stats || {
+        totalTags: 0,
+        activatedTags: 0,
+        totalPets: 0,
+        activatedPets: 0
       },
       permissions: {
         canAccessDashboard: true,
@@ -91,8 +57,8 @@ export const adminVerifyUser = async (email) => {
       }
     };
 
-    console.log('✅ [ADMIN] Usuario verificado:', result);
-    return result;
+    console.log('✅ [ADMIN] Usuario verificado:', finalResult);
+    return finalResult;
 
   } catch (error) {
     console.error('Error en verificación admin:', error);
@@ -100,65 +66,18 @@ export const adminVerifyUser = async (email) => {
   }
 };
 
-// Función para listar todos los usuarios (solo admin) con manejo de errores mejorado
+// Función para listar todos los usuarios usando función segura
 export const listAllUsers = async () => {
   try {
     console.log('📋 Listando todos los usuarios...');
     
-    const { data: allUsers, error } = await supabase
-      .from('users')
-      .select(`
-        id,
-        email,
-        full_name,
-        created_at,
-        updated_at
-      `)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw error;
+    const result = await getAdminUsersList();
+    
+    if (!result.success) {
+      throw new Error(result.error);
     }
 
-    // Obtener estadísticas para cada usuario
-    const usersWithStats = await Promise.all(
-      allUsers.map(async (user) => {
-        try {
-          const { data: userTags } = await supabase
-            .from('tags')
-            .select('id, activated')
-            .eq('user_id', user.id);
-
-          const { data: userPets } = await supabase
-            .from('pets')
-            .select('id, qr_activated')
-            .eq('user_id', user.id);
-
-          return {
-            ...user,
-            stats: {
-              totalTags: userTags?.length || 0,
-              activatedTags: userTags?.filter(tag => tag.activated)?.length || 0,
-              totalPets: userPets?.length || 0,
-              activatedPets: userPets?.filter(pet => pet.qr_activated)?.length || 0
-            }
-          };
-        } catch (error) {
-          console.error(`Error getting stats for user ${user.id}:`, error);
-          return {
-            ...user,
-            stats: {
-              totalTags: 0,
-              activatedTags: 0,
-              totalPets: 0,
-              activatedPets: 0
-            }
-          };
-        }
-      })
-    );
-
-    return { users: usersWithStats };
+    return { users: result.data };
 
   } catch (error) {
     console.error('Error listando usuarios:', error);
@@ -206,6 +125,16 @@ export const verifyDatabaseHealth = async () => {
         health.columns[`${table}.${column}`] = { exists: false, error: error.message };
         health.overall = false;
       }
+    }
+
+    // Verificar acceso a funciones de admin
+    try {
+      const { data, error } = await supabase.rpc('get_user_statistics');
+      health.admin_functions = { available: !error, error: error?.message };
+      if (error) health.overall = false;
+    } catch (error) {
+      health.admin_functions = { available: false, error: error.message };
+      health.overall = false;
     }
 
     return health;

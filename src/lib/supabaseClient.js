@@ -197,20 +197,18 @@ export const testDatabaseQueries = async () => {
   }
 
   try {
-    // Test de public.users
+    // Test de public.users usando función segura
     const { data: usersData, error: usersError } = await supabase
-      .from('users')
-      .select('id, email, full_name, phone')
-      .limit(1);
+      .rpc('get_user_statistics');
     
-    tests.users_public = { success: !usersError, error: usersError?.message };
+    tests.users_stats = { success: !usersError, error: usersError?.message, data: usersData };
   } catch (error) {
-    tests.users_public = { success: false, error: error.message };
+    tests.users_stats = { success: false, error: error.message };
   }
   
   try {
     // Test de join solo si los tests básicos funcionan
-    if (tests.tags_basic?.success && tests.pets_basic?.success && tests.users_public?.success) {
+    if (tests.tags_basic?.success && tests.pets_basic?.success) {
       const { data: joinData, error: joinError } = await supabase
         .from('tags')
         .select(`
@@ -281,18 +279,16 @@ export const checkRequiredColumns = async () => {
   }
 
   try {
-    // Verificar phone en users
-    const { data: usersPhoneTest, error: usersPhoneError } = await supabase
-      .from('users')
-      .select('phone')
-      .limit(1);
+    // Verificar phone en users usando función segura
+    const { data: usersStatsTest, error: usersStatsError } = await supabase
+      .rpc('get_user_statistics');
     
-    columnChecks.users_phone = { 
-      exists: !usersPhoneError, 
-      error: usersPhoneError?.message 
+    columnChecks.users_access = { 
+      exists: !usersStatsError, 
+      error: usersStatsError?.message 
     };
   } catch (error) {
-    columnChecks.users_phone = { exists: false, error: error.message };
+    columnChecks.users_access = { exists: false, error: error.message };
   }
 
   try {
@@ -308,21 +304,6 @@ export const checkRequiredColumns = async () => {
     };
   } catch (error) {
     columnChecks.tags_created_at = { exists: false, error: error.message };
-  }
-
-  try {
-    // Verificar tabla public.users
-    const { data: usersTest, error: usersError } = await supabase
-      .from('users')
-      .select('id, email, full_name, phone')
-      .limit(1);
-    
-    columnChecks.public_users = { 
-      exists: !usersError, 
-      error: usersError?.message 
-    };
-  } catch (error) {
-    columnChecks.public_users = { exists: false, error: error.message };
   }
 
   return columnChecks;
@@ -401,7 +382,7 @@ export const getUserTagsWithPets = async (userId) => {
   }
 };
 
-// Helper function to get all tags for admin with related data - ACTUALIZADA
+// FUNCIÓN MEJORADA para obtener todos los tags para admin usando función segura
 export const getAllTagsWithDetails = async () => {
   try {
     const { data, error } = await supabase
@@ -421,6 +402,108 @@ export const getAllTagsWithDetails = async () => {
     return { success: !error, data: data || [], error: error?.message };
   } catch (error) {
     return { success: false, data: [], error: error.message };
+  }
+};
+
+// FUNCIÓN MEJORADA para obtener estadísticas usando función segura
+export const getAdminStatistics = async () => {
+  try {
+    console.log('📊 Obteniendo estadísticas usando función segura...');
+    
+    // Usar función segura para estadísticas de usuarios
+    const { data: userStats, error: userStatsError } = await supabase
+      .rpc('get_user_statistics');
+    
+    if (userStatsError) {
+      console.warn('Error obteniendo estadísticas de usuarios:', userStatsError);
+    }
+    
+    // Obtener estadísticas de tags y pets directamente
+    const { count: totalTags } = await supabase
+      .from('tags')
+      .select('id', { count: 'exact', head: true });
+    
+    const { count: activatedTags } = await supabase
+      .from('tags')
+      .select('id', { count: 'exact', head: true })
+      .eq('activated', true);
+    
+    const { count: totalPets } = await supabase
+      .from('pets')
+      .select('id', { count: 'exact', head: true });
+    
+    const stats = {
+      totalTags: totalTags || 0,
+      activatedTags: activatedTags || 0,
+      totalPets: totalPets || 0,
+      totalUsers: userStats?.[0]?.total_users || 0
+    };
+    
+    console.log('📊 Estadísticas obtenidas:', stats);
+    return { success: true, data: stats, error: null };
+    
+  } catch (error) {
+    console.error('Error obteniendo estadísticas:', error);
+    return { success: false, data: null, error: error.message };
+  }
+};
+
+// FUNCIÓN MEJORADA para listar usuarios usando función segura
+export const getAdminUsersList = async () => {
+  try {
+    console.log('👥 Obteniendo lista de usuarios usando función segura...');
+    
+    const { data, error } = await supabase
+      .rpc('list_users_for_admin');
+    
+    if (error) {
+      console.error('Error obteniendo lista de usuarios:', error);
+      return { success: false, data: [], error: error.message };
+    }
+    
+    console.log('👥 Lista de usuarios obtenida:', data);
+    return { success: true, data: data || [], error: null };
+    
+  } catch (error) {
+    console.error('Error inesperado obteniendo usuarios:', error);
+    return { success: false, data: [], error: error.message };
+  }
+};
+
+// FUNCIÓN MEJORADA para verificar usuario específico usando función segura
+export const getAdminUserVerification = async (email) => {
+  try {
+    console.log(`🔍 Verificando usuario ${email} usando función segura...`);
+    
+    const { data, error } = await supabase
+      .rpc('verify_user_for_admin', { user_email: email });
+    
+    if (error) {
+      console.error('Error verificando usuario:', error);
+      return { success: false, data: null, error: error.message };
+    }
+    
+    if (!data || data.length === 0) {
+      return { success: false, data: null, error: 'Usuario no encontrado' };
+    }
+    
+    const result = data[0];
+    console.log('🔍 Usuario verificado:', result);
+    
+    return { 
+      success: true, 
+      data: {
+        user: result.user_data,
+        tags: result.tags_data || [],
+        pets: result.pets_data || [],
+        stats: result.stats || {}
+      }, 
+      error: null 
+    };
+    
+  } catch (error) {
+    console.error('Error inesperado verificando usuario:', error);
+    return { success: false, data: null, error: error.message };
   }
 };
 

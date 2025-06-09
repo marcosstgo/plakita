@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
-import { supabase, createTagWithValidation, createTestTags, cleanupTestTags } from '@/lib/supabaseClient';
+import { supabase, createTagWithValidation, createTestTags, cleanupTestTags, getAdminStatistics, getAllTagsWithDetails } from '@/lib/supabaseClient';
 import QRCode from 'qrcode';
 import { validateTagCode, generateTagCode } from '@/components/forms/PetFormValidation';
 import FormErrorDisplay from '@/components/forms/FormErrorDisplay';
@@ -152,20 +152,18 @@ const AdminDashboard = () => {
         errors.push(`Error verificando pets: ${error.message}`);
       }
       
-      // Verificar tabla public.users
+      // Verificar acceso a usuarios usando función segura
       try {
         const { data: usersTest, error: usersError } = await supabase
-          .from('users')
-          .select('id, email, full_name')
-          .limit(1);
+          .rpc('get_user_statistics');
         
         status.users = { success: !usersError, error: usersError?.message };
         
         if (usersError) {
-          errors.push('Tabla public.users no existe o no es accesible');
+          errors.push('Función get_user_statistics no disponible o sin permisos');
         }
       } catch (error) {
-        errors.push(`Error verificando public.users: ${error.message}`);
+        errors.push(`Error verificando acceso a usuarios: ${error.message}`);
       }
       
     } catch (error) {
@@ -177,7 +175,7 @@ const AdminDashboard = () => {
     return errors.length === 0;
   };
 
-  // Cargar datos del admin
+  // Cargar datos del admin usando funciones seguras
   const loadAdminData = async () => {
     setIsLoading(true);
     
@@ -195,7 +193,7 @@ const AdminDashboard = () => {
         return;
       }
       
-      // Cargar datos en paralelo
+      // Cargar datos en paralelo usando funciones seguras
       await Promise.all([
         loadTags(),
         loadStats()
@@ -213,27 +211,17 @@ const AdminDashboard = () => {
     }
   };
 
-  // Cargar tags con información relacionada - MEJORADO para mostrar problemas de integridad
+  // Cargar tags con información relacionada usando función segura
   const loadTags = async () => {
     try {
-      const { data: tagsData, error } = await supabase
-        .from('tags')
-        .select(`
-          id,
-          code,
-          activated,
-          created_at,
-          pet_id,
-          user_id,
-          pets:pet_id (id, name, qr_activated),
-          users:user_id (email, full_name, phone)
-        `)
-        .order('created_at', { ascending: false });
+      const result = await getAllTagsWithDetails();
       
-      if (error) throw error;
+      if (!result.success) {
+        throw new Error(result.error);
+      }
       
       // Procesar datos para detectar problemas de integridad
-      const processedTags = (tagsData || []).map(tag => {
+      const processedTags = (result.data || []).map(tag => {
         const hasIntegrityIssue = tag.activated && !tag.pets;
         const isOrphaned = tag.activated && !tag.user_id;
         
@@ -266,71 +254,36 @@ const AdminDashboard = () => {
     }
   };
 
-  // FUNCIÓN MEJORADA para cargar estadísticas con mejor conteo de usuarios
+  // Cargar estadísticas usando función segura
   const loadStats = async () => {
     try {
-      console.log('📊 Cargando estadísticas...');
+      const result = await getAdminStatistics();
       
-      // Contar tags
-      const { count: totalTags } = await supabase
-        .from('tags')
-        .select('id', { count: 'exact', head: true });
-      
-      const { count: activatedTags } = await supabase
-        .from('tags')
-        .select('id', { count: 'exact', head: true })
-        .eq('activated', true);
-      
-      // Contar pets
-      const { count: totalPets } = await supabase
-        .from('pets')
-        .select('id', { count: 'exact', head: true });
-      
-      // MEJORADO: Contar usuarios con múltiples estrategias
-      let totalUsers = 0;
-      
-      try {
-        // Estrategia 1: Contar desde public.users
-        const { count: usersCount, error: usersCountError } = await supabase
-          .from('users')
+      if (result.success) {
+        setStats(result.data);
+      } else {
+        console.error('Error loading stats:', result.error);
+        // Fallback a estadísticas básicas
+        const { count: totalTags } = await supabase
+          .from('tags')
           .select('id', { count: 'exact', head: true });
         
-        if (usersCountError) {
-          console.warn('Error contando desde public.users:', usersCountError);
-          
-          // Estrategia 2: Contar usuarios únicos desde tags
-          const { data: uniqueUserIds, error: uniqueUsersError } = await supabase
-            .from('tags')
-            .select('user_id')
-            .not('user_id', 'is', null);
-          
-          if (!uniqueUsersError && uniqueUserIds) {
-            const uniqueIds = [...new Set(uniqueUserIds.map(t => t.user_id))];
-            totalUsers = uniqueIds.length;
-            console.log('📊 Usuarios contados desde tags únicos:', totalUsers);
-          } else {
-            console.warn('Error contando usuarios únicos desde tags:', uniqueUsersError);
-            totalUsers = 0;
-          }
-        } else {
-          totalUsers = usersCount || 0;
-          console.log('📊 Usuarios contados desde public.users:', totalUsers);
-        }
-      } catch (error) {
-        console.warn('Error general contando usuarios:', error);
-        totalUsers = 0;
+        const { count: activatedTags } = await supabase
+          .from('tags')
+          .select('id', { count: 'exact', head: true })
+          .eq('activated', true);
+        
+        const { count: totalPets } = await supabase
+          .from('pets')
+          .select('id', { count: 'exact', head: true });
+        
+        setStats({
+          totalTags: totalTags || 0,
+          activatedTags: activatedTags || 0,
+          totalPets: totalPets || 0,
+          totalUsers: 0 // No podemos obtener sin función segura
+        });
       }
-      
-      const newStats = {
-        totalTags: totalTags || 0,
-        activatedTags: activatedTags || 0,
-        totalPets: totalPets || 0,
-        totalUsers
-      };
-      
-      console.log('📊 Estadísticas finales:', newStats);
-      setStats(newStats);
-      
     } catch (error) {
       console.error('Error loading stats:', error);
       setStats({
@@ -855,7 +808,7 @@ const AdminDashboard = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">
                               {tag.code}
                               {tag.hasIntegrityIssue && (
-                                <AlertTriangle className="h-4 w-4 text-red-400 inline ml-2\" title="Problema de integridad" />
+                                <AlertTriangle className="h-4 w-4 text-red-400 inline ml-2" title="Problema de integridad" />
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
