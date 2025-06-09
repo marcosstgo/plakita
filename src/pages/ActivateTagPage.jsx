@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Tag, PawPrint, UserCircle, Phone, Edit3, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Tag, PawPrint, UserCircle, Phone, Mail, Edit3, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +30,13 @@ const ActivateTagPage = () => {
   const [formErrors, setFormErrors] = useState({});
 
   const [formData, setFormData] = useState({
-    name: '', type: '', breed: '', ownerName: '', contactInfo: '', notes: ''
+    name: '', 
+    type: '', 
+    breed: '', 
+    ownerName: '', 
+    ownerPhone: '', 
+    ownerEmail: '', 
+    notes: ''
   });
 
   useEffect(() => {
@@ -47,7 +53,8 @@ const ActivateTagPage = () => {
       setFormData(prev => ({
         ...prev,
         ownerName: prev.ownerName || user.user_metadata?.full_name || user.email || '',
-        contactInfo: prev.contactInfo || user.user_metadata?.phone || user.email || '',
+        ownerEmail: prev.ownerEmail || user.email || '',
+        ownerPhone: prev.ownerPhone || user.user_metadata?.phone || '',
       }));
     }
   }, [user, showPetForm]);
@@ -99,7 +106,8 @@ const ActivateTagPage = () => {
             type: associatedPet.type || '', 
             breed: associatedPet.breed || '',
             ownerName: associatedPet.owner_name || user?.user_metadata?.full_name || '',
-            contactInfo: associatedPet.owner_contact || user?.email || '',
+            ownerPhone: associatedPet.owner_phone || user?.user_metadata?.phone || '',
+            ownerEmail: associatedPet.owner_contact || user?.email || '',
             notes: associatedPet.notes || ''
           });
           setShowPetForm(true);
@@ -114,7 +122,8 @@ const ActivateTagPage = () => {
           setFormData({ 
             name: '', type: '', breed: '', 
             ownerName: user?.user_metadata?.full_name || '', 
-            contactInfo: user?.email || '', 
+            ownerPhone: user?.user_metadata?.phone || '',
+            ownerEmail: user?.email || '', 
             notes: '' 
           });
           toast({ 
@@ -147,7 +156,8 @@ const ActivateTagPage = () => {
           setFormData({ 
             name: '', type: '', breed: '', 
             ownerName: user.user_metadata?.full_name || '', 
-            contactInfo: user.email || '', 
+            ownerPhone: user.user_metadata?.phone || '',
+            ownerEmail: user.email || '', 
             notes: '' 
           });
           toast({ 
@@ -173,8 +183,23 @@ const ActivateTagPage = () => {
   const handleSubmitPetInfo = async (e) => {
     e.preventDefault();
     
+    // Validar que al menos teléfono o email esté presente
+    if (!formData.ownerPhone && !formData.ownerEmail) {
+      setFormErrors({ contact: 'Debes proporcionar al menos un teléfono o email de contacto' });
+      toast({
+        title: "Información de contacto requerida",
+        description: "Proporciona al menos un teléfono o email para contactarte.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     // Limpiar y validar datos del formulario
-    const sanitizedData = sanitizePetFormData(formData);
+    const sanitizedData = sanitizePetFormData({
+      ...formData,
+      contactInfo: formData.ownerEmail || formData.ownerPhone // Para compatibilidad con validación existente
+    });
+    
     const validation = validatePetForm(sanitizedData);
     
     if (!validation.isValid) {
@@ -207,7 +232,8 @@ const ActivateTagPage = () => {
       type: sanitizedData.type, 
       breed: sanitizedData.breed,
       owner_name: sanitizedData.ownerName, 
-      owner_contact: sanitizedData.contactInfo,
+      owner_contact: formData.ownerEmail, // Email como contacto principal
+      owner_phone: formData.ownerPhone, // Teléfono separado
       notes: sanitizedData.notes
     };
 
@@ -346,6 +372,7 @@ const ActivateTagPage = () => {
                       required 
                     />
                   </div>
+                  
                   <div>
                     <Label htmlFor="type" className="text-purple-300 flex items-center">
                       <PawPrint className="h-4 w-4 mr-2" /> Tipo de Mascota
@@ -373,6 +400,7 @@ const ActivateTagPage = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                  
                   <div>
                     <Label htmlFor="breed" className="text-purple-300 flex items-center">
                       <PawPrint className="h-4 w-4 mr-2" /> Raza (Opcional)
@@ -387,7 +415,9 @@ const ActivateTagPage = () => {
                       className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50" 
                     />
                   </div>
+                  
                   <hr className="border-white/20" />
+                  
                   <div>
                     <Label htmlFor="ownerName" className="text-purple-300 flex items-center">
                       <UserCircle className="h-4 w-4 mr-2" /> Nombre del Dueño
@@ -408,27 +438,49 @@ const ActivateTagPage = () => {
                       required 
                     />
                   </div>
+                  
                   <div>
-                    <Label htmlFor="contactInfo" className="text-purple-300 flex items-center">
-                      <Phone className="h-4 w-4 mr-2" /> Información de Contacto del Dueño
+                    <Label htmlFor="ownerPhone" className="text-purple-300 flex items-center">
+                      <Phone className="h-4 w-4 mr-2" /> Teléfono del Dueño (Opcional)
                     </Label>
                     <Input 
-                      id="contactInfo" 
-                      name="contactInfo" 
-                      type="text" 
-                      placeholder="Tu teléfono o email principal" 
-                      value={formData.contactInfo} 
+                      id="ownerPhone" 
+                      name="ownerPhone" 
+                      type="tel" 
+                      placeholder="Ej: +1 787 123 4567" 
+                      value={formData.ownerPhone} 
                       onChange={(e) => {
-                        setFormData({ ...formData, contactInfo: e.target.value });
-                        setFormErrors(prev => ({ ...prev, contactInfo: undefined }));
+                        setFormData({ ...formData, ownerPhone: e.target.value });
+                        setFormErrors(prev => ({ ...prev, contact: undefined }));
                       }} 
-                      className={`mt-1 bg-white/10 border-white/30 placeholder:text-white/50 ${
-                        formErrors.contactInfo ? 'border-red-500' : ''
-                      }`}
-                      required 
+                      className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50"
                     />
                   </div>
+                  
+                  <div>
+                    <Label htmlFor="ownerEmail" className="text-purple-300 flex items-center">
+                      <Mail className="h-4 w-4 mr-2" /> Email del Dueño (Opcional)
+                    </Label>
+                    <Input 
+                      id="ownerEmail" 
+                      name="ownerEmail" 
+                      type="email" 
+                      placeholder="tu@email.com" 
+                      value={formData.ownerEmail} 
+                      onChange={(e) => {
+                        setFormData({ ...formData, ownerEmail: e.target.value });
+                        setFormErrors(prev => ({ ...prev, contact: undefined }));
+                      }} 
+                      className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50"
+                    />
+                  </div>
+                  
+                  {formErrors.contact && (
+                    <p className="text-red-300 text-sm">• {formErrors.contact}</p>
+                  )}
+                  
                   <hr className="border-white/20" />
+                  
                   <div>
                     <Label htmlFor="notes" className="text-purple-300 flex items-center">
                       <Edit3 className="h-4 w-4 mr-2" /> Notas Adicionales (Opcional)
@@ -442,6 +494,7 @@ const ActivateTagPage = () => {
                       className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50 min-h-[100px]" 
                     />
                   </div>
+                  
                   <Button 
                     type="submit" 
                     className="w-full bg-white text-purple-600 hover:bg-purple-200 font-bold py-3 text-lg" 

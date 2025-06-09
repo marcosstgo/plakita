@@ -94,7 +94,7 @@ export const testDatabaseQueries = async () => {
       try {
         const { data: petsSpecific, error: petsSpecificError } = await supabase
           .from('pets')
-          .select('id, name, type, breed, owner_name, owner_contact, notes, user_id, qr_activated')
+          .select('id, name, type, breed, owner_name, owner_contact, owner_phone, notes, user_id, qr_activated')
           .limit(1);
         
         tests.pets_specific = { success: !petsSpecificError, error: petsSpecificError?.message };
@@ -110,7 +110,7 @@ export const testDatabaseQueries = async () => {
     // Test de public.users
     const { data: usersData, error: usersError } = await supabase
       .from('users')
-      .select('id, email, full_name')
+      .select('id, email, full_name, phone')
       .limit(1);
     
     tests.users_public = { success: !usersError, error: usersError?.message };
@@ -127,8 +127,8 @@ export const testDatabaseQueries = async () => {
           id, 
           code, 
           activated,
-          pets:pet_id (id, name),
-          users:user_id (email, full_name)
+          pets:pet_id (id, name, owner_phone),
+          users:user_id (email, full_name, phone)
         `)
         .limit(1);
       
@@ -176,6 +176,36 @@ export const checkRequiredColumns = async () => {
   }
 
   try {
+    // Verificar owner_phone en pets
+    const { data: petsPhoneTest, error: petsPhoneError } = await supabase
+      .from('pets')
+      .select('owner_phone')
+      .limit(1);
+    
+    columnChecks.pets_owner_phone = { 
+      exists: !petsPhoneError, 
+      error: petsPhoneError?.message 
+    };
+  } catch (error) {
+    columnChecks.pets_owner_phone = { exists: false, error: error.message };
+  }
+
+  try {
+    // Verificar phone en users
+    const { data: usersPhoneTest, error: usersPhoneError } = await supabase
+      .from('users')
+      .select('phone')
+      .limit(1);
+    
+    columnChecks.users_phone = { 
+      exists: !usersPhoneError, 
+      error: usersPhoneError?.message 
+    };
+  } catch (error) {
+    columnChecks.users_phone = { exists: false, error: error.message };
+  }
+
+  try {
     // Verificar created_at en tags
     const { data: tagsCreatedTest, error: tagsCreatedError } = await supabase
       .from('tags')
@@ -194,7 +224,7 @@ export const checkRequiredColumns = async () => {
     // Verificar tabla public.users
     const { data: usersTest, error: usersError } = await supabase
       .from('users')
-      .select('id, email, full_name')
+      .select('id, email, full_name, phone')
       .limit(1);
     
     columnChecks.public_users = { 
@@ -220,6 +250,7 @@ export const syncCurrentUser = async (user) => {
         email: user.email,
         full_name: user.user_metadata?.full_name || user.email,
         avatar_url: user.user_metadata?.avatar_url,
+        phone: user.user_metadata?.phone,
         updated_at: new Date().toISOString()
       })
       .select()
@@ -265,6 +296,7 @@ export const getUserTagsWithPets = async (userId) => {
           breed,
           owner_name,
           owner_contact,
+          owner_phone,
           notes,
           qr_activated
         )
@@ -291,8 +323,8 @@ export const getAllTagsWithDetails = async () => {
         created_at,
         pet_id,
         user_id,
-        pets:pet_id (id, name),
-        users:user_id (email, full_name)
+        pets:pet_id (id, name, owner_phone),
+        users:user_id (email, full_name, phone)
       `)
       .order('created_at', { ascending: false });
     
@@ -320,6 +352,7 @@ export const getTagByCode = async (code) => {
           breed,
           owner_name,
           owner_contact,
+          owner_phone,
           notes,
           qr_activated,
           user_id
@@ -334,7 +367,7 @@ export const getTagByCode = async (code) => {
   }
 };
 
-// Nueva función para activar tag con mascota
+// Nueva función para activar tag con mascota - ACTUALIZADA para incluir owner_phone
 export const activateTagWithPet = async (tagId, petData, userId) => {
   try {
     // Primero crear o actualizar la mascota
@@ -350,6 +383,7 @@ export const activateTagWithPet = async (tagId, petData, userId) => {
           breed: petData.breed,
           owner_name: petData.owner_name,
           owner_contact: petData.owner_contact,
+          owner_phone: petData.owner_phone,
           notes: petData.notes,
           user_id: userId,
           qr_activated: true
@@ -369,6 +403,7 @@ export const activateTagWithPet = async (tagId, petData, userId) => {
           breed: petData.breed,
           owner_name: petData.owner_name,
           owner_contact: petData.owner_contact,
+          owner_phone: petData.owner_phone,
           notes: petData.notes,
           qr_activated: true
         })
@@ -400,7 +435,7 @@ export const activateTagWithPet = async (tagId, petData, userId) => {
   }
 };
 
-// Nueva función para obtener mascota pública por ID
+// Nueva función para obtener mascota pública por ID - ACTUALIZADA para incluir owner_phone
 export const getPublicPetById = async (petId) => {
   try {
     const { data, error } = await supabase
@@ -412,6 +447,7 @@ export const getPublicPetById = async (petId) => {
         breed,
         owner_name,
         owner_contact,
+        owner_phone,
         notes,
         qr_activated,
         tags:tags!pet_id (

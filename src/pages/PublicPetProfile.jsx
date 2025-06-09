@@ -71,12 +71,38 @@ const PublicPetProfile = () => {
     }
   };
 
-  const handleContact = (contactInfo) => {
-    if (contactInfo.includes('@')) {
-      window.location.href = `mailto:${contactInfo}`;
-    } else {
-      window.location.href = `tel:${contactInfo.replace(/\s+/g, '')}`;
-    }
+  // Función para extraer solo el primer nombre
+  const getFirstName = (fullName) => {
+    if (!fullName) return 'Mi dueño';
+    const names = fullName.trim().split(' ');
+    return names[0];
+  };
+
+  // Función para determinar si un contacto es email o teléfono
+  const isEmail = (contact) => {
+    return contact && contact.includes('@');
+  };
+
+  const isPhone = (contact) => {
+    return contact && /^[\+]?[\d\s\-\(\)]+$/.test(contact);
+  };
+
+  // Función para manejar contacto por teléfono
+  const handlePhoneContact = (phone) => {
+    const cleanPhone = phone.replace(/\s+/g, '').replace(/\D/g, '');
+    window.location.href = `tel:${cleanPhone}`;
+  };
+
+  // Función para manejar contacto por email
+  const handleEmailContact = (email) => {
+    window.location.href = `mailto:${email}`;
+  };
+
+  // Función para WhatsApp (si el teléfono es válido)
+  const handleWhatsAppContact = (phone) => {
+    const cleanPhone = phone.replace(/\s+/g, '').replace(/\D/g, '');
+    const message = encodeURIComponent(`Hola! Encontré a ${pet.name}. ¿Podrías ayudarme a reunirlos?`);
+    window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
   };
 
   if (isLoading) {
@@ -161,7 +187,7 @@ const PublicPetProfile = () => {
               <img 
                 className="w-40 h-40 rounded-full mx-auto mb-6 object-cover border-4 border-white/50 shadow-xl"
                 alt={`${pet.name} - ${pet.type}`}
-                 src="https://images.unsplash.com/photo-1703386194257-ea34a51282d6" />
+                src="https://images.unsplash.com/photo-1703386194257-ea34a51282d6" />
               <CardTitle className="text-white text-4xl font-bold drop-shadow-md">
                 {pet.name}
               </CardTitle>
@@ -174,7 +200,7 @@ const PublicPetProfile = () => {
                 <h2 className="text-xl font-semibold text-white mb-2">
                   Mi dueño es:
                 </h2>
-                <p className="text-3xl font-bold">{pet.owner_name}</p>
+                <p className="text-3xl font-bold">{getFirstName(pet.owner_name)}</p>
               </div>
 
               {pet.notes && (
@@ -187,29 +213,83 @@ const PublicPetProfile = () => {
               )}
 
               <div className="text-center">
-                <h3 className="text-xl font-semibold text-white mb-4">
+                <h3 className="text-xl font-semibold text-white mb-6">
                   Por favor, contacta a mi dueño:
                 </h3>
-                <Button
-                  onClick={() => handleContact(pet.owner_contact)} 
-                  size="lg"
-                  className="bg-white text-purple-600 hover:bg-gray-200 text-lg px-10 py-6 rounded-full shadow-xl transform hover:scale-105 transition-transform duration-200 ease-in-out pulse-glow"
-                >
-                  {pet.owner_contact.includes('@') ? (
-                    <>
-                      <Mail className="h-6 w-6 mr-3" />
-                      Enviar Email
-                    </>
-                  ) : (
-                    <>
-                      <Phone className="h-6 w-6 mr-3" />
-                      Llamar Ahora
-                    </>
+                
+                <div className="space-y-4">
+                  {/* Botón de teléfono - priorizar owner_phone si existe, sino usar owner_contact si es teléfono */}
+                  {(pet.owner_phone || (pet.owner_contact && isPhone(pet.owner_contact))) && (
+                    <div className="space-y-2">
+                      <Button
+                        onClick={() => handlePhoneContact(pet.owner_phone || pet.owner_contact)} 
+                        size="lg"
+                        className="w-full bg-green-600 hover:bg-green-700 text-white text-lg px-10 py-6 rounded-full shadow-xl transform hover:scale-105 transition-transform duration-200 ease-in-out"
+                      >
+                        <Phone className="h-6 w-6 mr-3" />
+                        Llamar Ahora
+                      </Button>
+                      <p className="text-white/70 text-sm">
+                        {pet.owner_phone || pet.owner_contact}
+                      </p>
+                      
+                      {/* Botón de WhatsApp adicional */}
+                      <Button
+                        onClick={() => handleWhatsAppContact(pet.owner_phone || pet.owner_contact)}
+                        size="lg"
+                        variant="outline"
+                        className="w-full border-green-400 text-green-400 hover:bg-green-400 hover:text-white text-lg px-10 py-4 rounded-full shadow-lg transform hover:scale-105 transition-transform duration-200 ease-in-out"
+                      >
+                        <MessageCircle className="h-5 w-5 mr-2" />
+                        WhatsApp
+                      </Button>
+                    </div>
                   )}
-                </Button>
-                <p className="text-white/70 text-md mt-4">
-                  {pet.owner_contact}
-                </p>
+
+                  {/* Botón de email - usar owner_contact si es email */}
+                  {(pet.owner_contact && isEmail(pet.owner_contact)) && (
+                    <div className="space-y-2">
+                      <Button
+                        onClick={() => handleEmailContact(pet.owner_contact)} 
+                        size="lg"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white text-lg px-10 py-6 rounded-full shadow-xl transform hover:scale-105 transition-transform duration-200 ease-in-out"
+                      >
+                        <Mail className="h-6 w-6 mr-3" />
+                        Enviar Email
+                      </Button>
+                      <p className="text-white/70 text-sm">
+                        {pet.owner_contact}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Fallback si no hay teléfono ni email válidos */}
+                  {!pet.owner_phone && 
+                   !isPhone(pet.owner_contact) && 
+                   !isEmail(pet.owner_contact) && 
+                   pet.owner_contact && (
+                    <div className="space-y-2">
+                      <Button
+                        onClick={() => {
+                          // Intentar determinar el tipo de contacto
+                          if (pet.owner_contact.includes('@')) {
+                            handleEmailContact(pet.owner_contact);
+                          } else {
+                            handlePhoneContact(pet.owner_contact);
+                          }
+                        }} 
+                        size="lg"
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white text-lg px-10 py-6 rounded-full shadow-xl transform hover:scale-105 transition-transform duration-200 ease-in-out pulse-glow"
+                      >
+                        <Phone className="h-6 w-6 mr-3" />
+                        Contactar
+                      </Button>
+                      <p className="text-white/70 text-sm">
+                        {pet.owner_contact}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
