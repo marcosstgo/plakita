@@ -185,7 +185,7 @@ const PublicPetProfile = () => {
           <Card className="gradient-card border-white/20 mb-6 shadow-2xl">
             <CardHeader className="text-center pt-8">
               <img 
-                className="w-40 h-40 rounded-full mx-auto mb-6 object-cover border-4 border-white/50 shadow-xl"
+                className="w-40 h-40 rounde-full mx-auto mb-6 object-cover border-4 border-white/50 shadow-xl"
                 alt={`${pet.name} - ${pet.type}`}
                 src="https://images.unsplash.com/photo-1703386194257-ea34a51282d6" />
               <CardTitle className="text-white text-4xl font-bold drop-shadow-md">
