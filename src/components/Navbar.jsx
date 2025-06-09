@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, LogOut, User, Home, ShieldCheck, Search, HelpCircle } from 'lucide-react';
+import { Heart, LogOut, User, Home, ShieldCheck, Search, HelpCircle, Database } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 
@@ -61,6 +61,12 @@ const Navbar = () => {
                       <Button variant="ghost" className="text-white hover:bg-blue-600/50 p-2 sm:px-4">
                         <Search className="h-4 w-4 sm:mr-2" />
                         <span className="hidden lg:inline">Verificar</span>
+                      </Button>
+                    </Link>
+                    <Link to="/database-diagnostic">
+                      <Button variant="ghost" className="text-white hover:bg-green-600/50 p-2 sm:px-4">
+                        <Database className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden xl:inline">DB</span>
                       </Button>
                     </Link>
                   </>

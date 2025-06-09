@@ -15,6 +15,7 @@ import ActivateTagPage from '@/pages/ActivateTagPage.jsx';
 import AdminDashboard from '@/pages/AdminDashboard';
 import AdminDiagnostic from '@/pages/AdminDiagnostic';
 import UserVerification from '@/pages/UserVerification';
+import DatabaseDiagnostic from '@/pages/DatabaseDiagnostic';
 
 function App() {
   return (
@@ -60,6 +61,11 @@ function App() {
               <Route path="verify-user" element={
                 <ProtectedRoute>
                   <UserVerification />
+                </ProtectedRoute>
+              } />
+              <Route path="database-diagnostic" element={
+                <ProtectedRoute>
+                  <DatabaseDiagnostic />
                 </ProtectedRoute>
               } />
             </Route>
