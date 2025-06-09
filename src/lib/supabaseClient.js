@@ -50,6 +50,78 @@ export const verifyDatabaseSchema = async () => {
   return results;
 };
 
+// FUNCIÓN MEJORADA para crear tags con validación completa
+export const createTagWithValidation = async (tagCode, userId = null) => {
+  try {
+    console.log('🏷️ Creando tag con validación:', { tagCode, userId });
+    
+    // 1. Validar formato del código
+    if (!tagCode || tagCode.trim().length < 3) {
+      throw new Error('El código debe tener al menos 3 caracteres');
+    }
+    
+    const normalizedCode = tagCode.trim().toUpperCase();
+    
+    // 2. Verificar que no existe ya
+    const { data: existingTag, error: checkError } = await supabase
+      .from('tags')
+      .select('id, code')
+      .eq('code', normalizedCode)
+      .maybeSingle();
+    
+    if (checkError) {
+      console.error('Error verificando tag existente:', checkError);
+      throw new Error(`Error verificando tag: ${checkError.message}`);
+    }
+    
+    if (existingTag) {
+      throw new Error(`Ya existe un tag con el código ${normalizedCode}`);
+    }
+    
+    // 3. Crear el tag
+    const tagData = {
+      code: normalizedCode,
+      activated: false,
+      user_id: userId,
+      created_at: new Date().toISOString()
+    };
+    
+    console.log('📝 Datos del tag a insertar:', tagData);
+    
+    const { data: newTag, error: insertError } = await supabase
+      .from('tags')
+      .insert(tagData)
+      .select()
+      .single();
+    
+    if (insertError) {
+      console.error('Error insertando tag:', insertError);
+      throw new Error(`Error creando tag: ${insertError.message}`);
+    }
+    
+    console.log('✅ Tag creado exitosamente:', newTag);
+    
+    // 4. Verificar que se creó correctamente
+    const { data: verifyTag, error: verifyError } = await supabase
+      .from('tags')
+      .select('*')
+      .eq('id', newTag.id)
+      .single();
+    
+    if (verifyError || !verifyTag) {
+      console.error('Error verificando tag creado:', verifyError);
+      throw new Error('Tag creado pero no se puede verificar');
+    }
+    
+    console.log('✅ Tag verificado en base de datos:', verifyTag);
+    return { success: true, data: verifyTag, error: null };
+    
+  } catch (error) {
+    console.error('❌ Error en createTagWithValidation:', error);
+    return { success: false, data: null, error: error.message };
+  }
+};
+
 // Helper function to safely test specific queries with better error handling
 export const testDatabaseQueries = async () => {
   const tests = {};
@@ -651,6 +723,77 @@ export const debugTagSearch = async (code) => {
     
   } catch (error) {
     console.error('🐛 DEBUG: Error en debugging:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// NUEVA FUNCIÓN: Crear tags de prueba para testing
+export const createTestTags = async (count = 5) => {
+  try {
+    console.log(`🧪 Creando ${count} tags de prueba...`);
+    
+    const testTags = [];
+    const results = [];
+    
+    for (let i = 1; i <= count; i++) {
+      const tagCode = `PLK-TEST${i.toString().padStart(2, '0')}`;
+      const result = await createTagWithValidation(tagCode, null);
+      results.push(result);
+      
+      if (result.success) {
+        testTags.push(result.data);
+        console.log(`✅ Tag de prueba creado: ${tagCode}`);
+      } else {
+        console.error(`❌ Error creando tag ${tagCode}:`, result.error);
+      }
+    }
+    
+    return {
+      success: true,
+      created: testTags.length,
+      total: count,
+      tags: testTags,
+      results
+    };
+    
+  } catch (error) {
+    console.error('❌ Error creando tags de prueba:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// NUEVA FUNCIÓN: Limpiar tags de prueba
+export const cleanupTestTags = async () => {
+  try {
+    console.log('🧹 Limpiando tags de prueba...');
+    
+    const { data: testTags, error: findError } = await supabase
+      .from('tags')
+      .select('id, code')
+      .ilike('code', 'PLK-TEST%');
+    
+    if (findError) {
+      throw findError;
+    }
+    
+    if (!testTags || testTags.length === 0) {
+      return { success: true, deleted: 0, message: 'No hay tags de prueba para eliminar' };
+    }
+    
+    const { error: deleteError } = await supabase
+      .from('tags')
+      .delete()
+      .ilike('code', 'PLK-TEST%');
+    
+    if (deleteError) {
+      throw deleteError;
+    }
+    
+    console.log(`✅ ${testTags.length} tags de prueba eliminados`);
+    return { success: true, deleted: testTags.length };
+    
+  } catch (error) {
+    console.error('❌ Error limpiando tags de prueba:', error);
     return { success: false, error: error.message };
   }
 };

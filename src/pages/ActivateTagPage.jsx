@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Tag, PawPrint, UserCircle, Phone, Mail, Edit3, AlertTriangle, CheckCircle, Bug } from 'lucide-react';
+import { Tag, PawPrint, UserCircle, Phone, Mail, Edit3, AlertTriangle, CheckCircle, Bug, TestTube, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
-import { getTagByCode, activateTagWithPet, debugTagSearch } from '@/lib/supabaseClient';
+import { getTagByCode, activateTagWithPet, debugTagSearch, createTestTags } from '@/lib/supabaseClient';
 import { validatePetForm, sanitizePetFormData } from '@/components/forms/PetFormValidation';
 import FormErrorDisplay from '@/components/forms/FormErrorDisplay';
 
@@ -29,6 +29,7 @@ const ActivateTagPage = () => {
   const [showPetForm, setShowPetForm] = useState(false);
   const [formErrors, setFormErrors] = useState({});
   const [debugInfo, setDebugInfo] = useState(null);
+  const [isCreatingTestTags, setIsCreatingTestTags] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '', 
@@ -81,6 +82,39 @@ const ActivateTagPage = () => {
     }
   };
 
+  const handleCreateTestTags = async () => {
+    setIsCreatingTestTags(true);
+    
+    try {
+      const result = await createTestTags(3);
+      
+      if (result.success) {
+        toast({
+          title: "Tags de prueba creados",
+          description: `Se crearon ${result.created} tags de prueba. Prueba con PLK-TEST01.`
+        });
+        
+        // Actualizar debug info
+        await handleDebugSearch(tagCode || 'PLK-TEST01');
+        
+        // Si no hay código ingresado, sugerir uno de prueba
+        if (!tagCode.trim()) {
+          setTagCode('PLK-TEST01');
+        }
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error creando tags de prueba",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreatingTestTags(false);
+    }
+  };
+
   const handleFetchTagInfo = async (currentTagCode) => {
     if (!currentTagCode || currentTagCode.trim() === '') {
       toast({ title: "Entrada requerida", description: "Por favor, ingresa un código de Plakita.", variant: "default" });
@@ -113,6 +147,8 @@ const ActivateTagPage = () => {
         if (result.availableTags && result.availableTags.length > 0) {
           const availableCodes = result.availableTags.map(t => t.code).join(', ');
           errorMessage += ` Códigos disponibles: ${availableCodes}`;
+        } else {
+          errorMessage += ' No hay tags en la base de datos.';
         }
         
         toast({ 
@@ -409,6 +445,29 @@ const ActivateTagPage = () => {
                         </div>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {/* Botón para crear tags de prueba si no hay ninguno */}
+                {debugInfo && debugInfo.totalTags === 0 && (
+                  <div className="mt-4 p-4 bg-blue-500/20 border border-blue-500/50 rounded-lg">
+                    <h4 className="text-blue-300 font-semibold mb-2">No hay tags en la base de datos</h4>
+                    <p className="text-blue-200 text-sm mb-3">
+                      Parece que no hay Plakitas creadas. Crea algunas de prueba para comenzar.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={handleCreateTestTags}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      disabled={isCreatingTestTags}
+                    >
+                      {isCreatingTestTags ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      ) : (
+                        <TestTube className="h-4 w-4 mr-2" />
+                      )}
+                      Crear Tags de Prueba
+                    </Button>
                   </div>
                 )}
               </form>

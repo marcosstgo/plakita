@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Tag, Users, QrCode, Heart, AlertTriangle, ShieldCheck, RefreshCw, Download, Eye, Trash2 } from 'lucide-react';
+import { Plus, Tag, Users, QrCode, Heart, AlertTriangle, ShieldCheck, RefreshCw, Download, Eye, Trash2, TestTube, Broom } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, createTagWithValidation, createTestTags, cleanupTestTags } from '@/lib/supabaseClient';
 import QRCode from 'qrcode';
 import { validateTagCode, generateTagCode } from '@/components/forms/PetFormValidation';
 import FormErrorDisplay from '@/components/forms/FormErrorDisplay';
@@ -47,6 +47,10 @@ const AdminDashboard = () => {
   // Estados de verificación
   const [databaseStatus, setDatabaseStatus] = useState(null);
   const [schemaErrors, setSchemaErrors] = useState([]);
+
+  // Estados para testing
+  const [isCreatingTestTags, setIsCreatingTestTags] = useState(false);
+  const [isCleaningTestTags, setIsCleaningTestTags] = useState(false);
 
   // Verificar si el usuario es admin
   useEffect(() => {
@@ -300,7 +304,7 @@ const AdminDashboard = () => {
     setFormErrors({});
   };
 
-  // Crear nuevo tag - CORREGIDO: No asignar user_id automáticamente
+  // Crear nuevo tag - MEJORADO con validación completa
   const handleCreateTag = async (e) => {
     e.preventDefault();
     
@@ -315,34 +319,19 @@ const AdminDashboard = () => {
     setFormErrors({});
     
     try {
-      console.log('🏷️ Creando tag sin asignar usuario:', {
-        code: newTagCode.trim().toUpperCase(),
-        activated: false,
-        user_id: null, // CAMBIO: No asignar usuario automáticamente
-        created_at: new Date().toISOString()
-      });
+      console.log('🏷️ Creando tag con validación completa:', newTagCode);
 
-      const { data, error } = await supabase
-        .from('tags')
-        .insert({ 
-          code: newTagCode.trim().toUpperCase(), 
-          activated: false,
-          user_id: null, // CAMBIO: Dejar sin asignar para que el cliente lo reclame
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
+      const result = await createTagWithValidation(newTagCode.trim().toUpperCase(), null);
       
-      if (error) {
-        console.error('Error creando tag:', error);
-        throw error;
+      if (!result.success) {
+        throw new Error(result.error);
       }
 
-      console.log('✅ Tag creado exitosamente sin usuario asignado:', data);
+      console.log('✅ Tag creado exitosamente:', result.data);
 
       toast({ 
         title: "Tag Creado", 
-        description: `Tag ${data.code} creado exitosamente. Listo para ser reclamado por un cliente.` 
+        description: `Tag ${result.data.code} creado exitosamente. Listo para ser reclamado por un cliente.` 
       });
       
       setNewTagCode('');
@@ -360,7 +349,7 @@ const AdminDashboard = () => {
           description: "No tienes permisos para crear tags. Verifica que seas administrador.", 
           variant: "destructive" 
         });
-      } else if (error.message.includes('duplicate key')) {
+      } else if (error.message.includes('duplicate key') || error.message.includes('Ya existe')) {
         setFormErrors({ code: 'Este código ya existe. Genera uno nuevo.' });
       } else {
         toast({ 
@@ -371,6 +360,62 @@ const AdminDashboard = () => {
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Crear tags de prueba
+  const handleCreateTestTags = async () => {
+    setIsCreatingTestTags(true);
+    
+    try {
+      const result = await createTestTags(5);
+      
+      if (result.success) {
+        toast({
+          title: "Tags de prueba creados",
+          description: `Se crearon ${result.created} de ${result.total} tags de prueba.`
+        });
+        await loadTags();
+        await loadStats();
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error creando tags de prueba",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreatingTestTags(false);
+    }
+  };
+
+  // Limpiar tags de prueba
+  const handleCleanupTestTags = async () => {
+    setIsCleaningTestTags(true);
+    
+    try {
+      const result = await cleanupTestTags();
+      
+      if (result.success) {
+        toast({
+          title: "Tags de prueba eliminados",
+          description: `Se eliminaron ${result.deleted} tags de prueba.`
+        });
+        await loadTags();
+        await loadStats();
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error eliminando tags de prueba",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsCleaningTestTags(false);
     }
   };
 
@@ -586,14 +631,42 @@ const AdminDashboard = () => {
                   Crea y visualiza las Plakitas disponibles para activación.
                 </CardDescription>
               </div>
-              <Button 
-                className="bg-purple-600 hover:bg-purple-700 text-white w-full sm:w-auto"
-                onClick={() => setIsCreateTagDialogOpen(true)}
-                disabled={schemaErrors.length > 0}
-              >
-                <Plus className="h-4 w-4 mr-2" /> 
-                Crear Nueva Plakita
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  onClick={() => setIsCreateTagDialogOpen(true)}
+                  disabled={schemaErrors.length > 0}
+                >
+                  <Plus className="h-4 w-4 mr-2" /> 
+                  Crear Nueva Plakita
+                </Button>
+                
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={handleCreateTestTags}
+                  disabled={isCreatingTestTags || schemaErrors.length > 0}
+                >
+                  {isCreatingTestTags ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  ) : (
+                    <TestTube className="h-4 w-4 mr-2" />
+                  )}
+                  Crear Tags de Prueba
+                </Button>
+                
+                <Button 
+                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                  onClick={handleCleanupTestTags}
+                  disabled={isCleaningTestTags || schemaErrors.length > 0}
+                >
+                  {isCleaningTestTags ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  ) : (
+                    <Broom className="h-4 w-4 mr-2" />
+                  )}
+                  Limpiar Pruebas
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {schemaErrors.length > 0 ? (
@@ -607,7 +680,21 @@ const AdminDashboard = () => {
               ) : (
                 <div className="overflow-x-auto custom-scrollbar">
                   {tags.length === 0 ? (
-                    <p className="text-center text-white/70 py-8">No hay Plakitas generadas todavía.</p>
+                    <div className="text-center py-8">
+                      <Tag className="h-16 w-16 text-white/50 mx-auto mb-4" />
+                      <p className="text-white/70 mb-4">No hay Plakitas generadas todavía.</p>
+                      <p className="text-white/60 text-sm mb-6">
+                        Crea algunas Plakitas de prueba para comenzar a probar el sistema.
+                      </p>
+                      <Button 
+                        onClick={handleCreateTestTags}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        disabled={isCreatingTestTags}
+                      >
+                        <TestTube className="h-4 w-4 mr-2" />
+                        Crear Tags de Prueba
+                      </Button>
+                    </div>
                   ) : (
                     <table className="min-w-full divide-y divide-purple-500/30">
                       <thead className="bg-white/5 sticky top-0 z-10">
