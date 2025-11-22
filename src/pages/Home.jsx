@@ -44,7 +44,7 @@ const Home = () => {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="bg-transparent border-white text-white hover:bg-white/20 text-lg px-8 py-4"
+                  className="bg-transparent border-white text-white hover:bg-white hover:text-sky-600 text-lg px-8 py-4 transition-all"
                 >
                   Ver Demo
                 </Button>
@@ -52,7 +52,7 @@ const Home = () => {
               <Button
                 size="lg"
                 variant="outline"
-                className="bg-transparent border-white text-white hover:bg-white/20 text-lg px-8 py-4"
+                className="bg-transparent border-white text-white hover:bg-white hover:text-sky-600 text-lg px-8 py-4 transition-all"
                 onClick={scrollToPricing}
               >
                 Ver Precios
@@ -278,7 +278,7 @@ const Home = () => {
               <Button
                 size="lg"
                 variant="outline"
-                className="bg-transparent border-white text-white hover:bg-white/20 text-lg px-8 py-4"
+                className="bg-transparent border-white text-white hover:bg-white hover:text-sky-600 text-lg px-8 py-4 transition-all"
                 onClick={scrollToPricing}
               >
                 Ver Planes y Beneficios

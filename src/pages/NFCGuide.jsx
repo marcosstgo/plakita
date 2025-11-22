@@ -407,7 +407,7 @@ const NFCGuide = () => {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-white text-white hover:bg-white/20"
+                    className="border-white text-white hover:bg-white hover:text-sky-600 transition-all"
                   >
                     Ver Más Ayuda
                   </Button>

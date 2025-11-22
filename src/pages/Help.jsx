@@ -246,7 +246,7 @@ const Help = () => {
                 <Button
                   onClick={() => window.location.href = '/demo'}
                   variant="outline"
-                  className="border-white text-white hover:bg-white/20"
+                  className="border-white text-white hover:bg-white hover:text-sky-600 transition-all"
                 >
                   <Heart className="h-4 w-4 mr-2" />
                   Ver Demo
@@ -254,7 +254,7 @@ const Help = () => {
                 <Button
                   onClick={() => window.location.href = '/nfc-guide'}
                   variant="outline"
-                  className="border-white text-white hover:bg-white/20"
+                  className="border-white text-white hover:bg-white hover:text-sky-600 transition-all"
                 >
                   <Wifi className="h-4 w-4 mr-2" />
                   Guía NFC
@@ -262,7 +262,7 @@ const Help = () => {
                 <Button
                   onClick={() => window.location.href = '/activate-plakita'}
                   variant="outline"
-                  className="border-white text-white hover:bg-white/20"
+                  className="border-white text-white hover:bg-white hover:text-sky-600 transition-all"
                 >
                   <Tag className="h-4 w-4 mr-2" />
                   Activar Plakita

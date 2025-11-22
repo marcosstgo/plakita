@@ -298,7 +298,7 @@ const PetProfile = () => {
                    <Link to={`/public/pet/${pet.id}`} target="_blank" rel="noopener noreferrer">
                     <Button
                       variant="outline"
-                      className="w-full mt-3 border-white text-white hover:bg-white/20"
+                      className="w-full mt-3 border-white text-white hover:bg-white hover:text-sky-600 transition-all"
                       disabled={!pet.qr_activated || !tagInfo?.activated}
                     >
                       Ver Perfil Público
