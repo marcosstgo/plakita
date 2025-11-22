@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, LogOut, User, Home, ShieldCheck, Search, HelpCircle, Database } from 'lucide-react';
+import { Heart, LogOut, User, Home, ShieldCheck, Search, HelpCircle, Database, Wifi } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 
@@ -38,6 +38,14 @@ const Navbar = () => {
               <Button variant="ghost" className="text-white hover:bg-white/20 p-2 sm:px-4">
                 <HelpCircle className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Ayuda</span>
+              </Button>
+            </Link>
+
+            {/* Enlace de Guía NFC - visible para todos */}
+            <Link to="/nfc-guide">
+              <Button variant="ghost" className="text-white hover:bg-white/20 p-2 sm:px-4">
+                <Wifi className="h-4 w-4 sm:mr-2" />
+                <span className="hidden md:inline">NFC</span>
               </Button>
             </Link>
 

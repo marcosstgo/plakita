@@ -244,6 +244,14 @@ const Help = () => {
                   Contactar Soporte
                 </Button>
                 <Button
+                  onClick={() => window.location.href = '/nfc-guide'}
+                  variant="outline"
+                  className="border-white text-white hover:bg-white/20"
+                >
+                  <Wifi className="h-4 w-4 mr-2" />
+                  Guía NFC
+                </Button>
+                <Button
                   onClick={() => window.location.href = '/activate-plakita'}
                   variant="outline"
                   className="border-white text-white hover:bg-white/20"

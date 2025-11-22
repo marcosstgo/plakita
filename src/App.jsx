@@ -10,8 +10,9 @@ import Dashboard from '@/pages/Dashboard';
 import PetProfile from '@/pages/PetProfile';
 import PublicPetProfile from '@/pages/PublicPetProfile';
 import Help from '@/pages/Help';
+import NFCGuide from '@/pages/NFCGuide';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import ActivateTagPage from '@/pages/ActivateTagPage.jsx'; 
+import ActivateTagPage from '@/pages/ActivateTagPage.jsx';
 import AdminDashboard from '@/pages/AdminDashboard';
 import AdminDiagnostic from '@/pages/AdminDiagnostic';
 import UserVerification from '@/pages/UserVerification';
@@ -28,6 +29,7 @@ function App() {
               <Route path="login" element={<Login />} />
               <Route path="register" element={<Register />} />
               <Route path="help" element={<Help />} />
+              <Route path="nfc-guide" element={<NFCGuide />} />
               <Route path="activate-plakita" element={ 
                 <ProtectedRoute>
                   <ActivateTagPage /> 
