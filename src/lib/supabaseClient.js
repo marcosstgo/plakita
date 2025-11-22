@@ -1,16 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Usar variables de entorno para mayor seguridad
-// Valores de fallback en caso de que no estén definidas las variables
-const fallbackUrl = 'https://pjojqwgxopdclfsovlgt.supabase.co';
-const fallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqb2pxd2d4b3BkY2xmc292bGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI0MDk1NDAsImV4cCI6MjA0Nzk4NTU0MH0.aKrExWwxKmfwCM3Z3aqCWiTHCxmcQqKO5N9R1Y8mWyI';
+// Verificar que existan las variables de entorno
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || fallbackUrl;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || fallbackKey;
-
-// Log para debug
-if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-  console.warn('⚠️ Variables de entorno no encontradas, usando valores de fallback');
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ Variables de entorno de Supabase no encontradas');
+  throw new Error('Configuración de Supabase incompleta. Verifica tu archivo .env');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
