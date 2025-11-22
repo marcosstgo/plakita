@@ -384,70 +384,44 @@ export const getUserTagsWithPets = async (userId) => {
 export const getAllTagsWithDetails = async () => {
   try {
     console.log('🔍 Obteniendo todos los tags con detalles para admin...');
-    
-    // Usar la nueva función específica del dashboard de admin
+
+    // Usar la nueva función get_all_tags_with_details
     const { data, error } = await supabase
-      .rpc('get_admin_dashboard_data');
-    
+      .rpc('get_all_tags_with_details');
+
     if (error) {
       console.error('Error obteniendo datos del dashboard admin:', error);
-      
-      // Fallback al método anterior si la función no está disponible
-      console.log('🔄 Usando método fallback...');
-      return await getAllTagsWithDetailsFallback();
+      return { success: false, data: [], error: error.message };
     }
-    
-    if (!data || data.length === 0) {
-      console.log('📋 No se encontraron tags');
-      return { success: true, data: [], error: null };
+
+    // La función retorna un objeto con success y data
+    if (data && data.success) {
+      const tags = data.data || [];
+      console.log('✅ Tags procesados con detalles:', tags.length);
+
+      // Log de problemas encontrados
+      const problemTags = tags.filter(tag => tag.hasIntegrityIssue);
+      if (problemTags.length > 0) {
+        console.warn(`⚠️ Se encontraron ${problemTags.length} tags con problemas de integridad:`,
+          problemTags.map(t => ({ code: t.code, issue: t.statusText }))
+        );
+      }
+
+      return { success: true, data: tags, error: null };
     }
-    
-    // Transformar los datos al formato esperado por el componente
-    const transformedData = data.map(row => ({
-      id: row.tag_id,
-      code: row.tag_code,
-      activated: row.tag_activated,
-      created_at: row.tag_created_at,
-      pet_id: row.pet_id,
-      user_id: row.user_id,
-      pets: row.pet_id ? {
-        id: row.pet_id,
-        name: row.pet_name,
-        type: row.pet_type,
-        qr_activated: row.pet_qr_activated,
-        owner_name: row.owner_name,
-        owner_contact: row.owner_contact,
-        owner_phone: row.owner_phone
-      } : null,
-      users: row.user_id ? {
-        id: row.user_id,
-        email: row.user_email,
-        full_name: row.user_full_name
-      } : null,
-      statusText: row.status_text,
-      hasIntegrityIssue: row.has_integrity_issue,
-      isOrphaned: row.tag_activated && !row.user_id,
-      hasValidPet: !!row.pet_id,
-      hasValidUser: !!row.user_id
-    }));
-    
-    console.log('✅ Tags procesados con detalles desde función admin:', transformedData.length);
-    
-    // Log de problemas encontrados
-    const problemTags = transformedData.filter(tag => tag.hasIntegrityIssue);
-    if (problemTags.length > 0) {
-      console.warn(`⚠️ Se encontraron ${problemTags.length} tags con problemas de integridad:`, 
-        problemTags.map(t => ({ code: t.code, issue: t.statusText }))
-      );
+
+    // Si la función retorna error
+    if (data && !data.success) {
+      return { success: false, data: [], error: data.error };
     }
-    
-    return { success: true, data: transformedData, error: null };
-    
+
+    // Si no hay datos
+    console.log('📋 No se encontraron tags');
+    return { success: true, data: [], error: null };
+
   } catch (error) {
     console.error('❌ Error inesperado obteniendo tags con detalles:', error);
-    
-    // Fallback en caso de error
-    return await getAllTagsWithDetailsFallback();
+    return { success: false, data: [], error: error.message };
   }
 };
 
@@ -561,39 +535,34 @@ const getAllTagsWithDetailsFallback = async () => {
 export const getAdminStatistics = async () => {
   try {
     console.log('📊 Obteniendo estadísticas usando función segura...');
-    
-    // Usar función segura para estadísticas de usuarios
-    const { data: userStats, error: userStatsError } = await supabase
-      .rpc('get_user_statistics');
-    
-    if (userStatsError) {
-      console.warn('Error obteniendo estadísticas de usuarios:', userStatsError);
+
+    // Usar la nueva función get_admin_statistics que obtiene todo en una sola llamada
+    const { data, error } = await supabase
+      .rpc('get_admin_statistics');
+
+    if (error) {
+      console.error('Error obteniendo estadísticas:', error);
+      return { success: false, data: null, error: error.message };
     }
-    
-    // Obtener estadísticas de tags y pets directamente
-    const { count: totalTags } = await supabase
-      .from('tags')
-      .select('id', { count: 'exact', head: true });
-    
-    const { count: activatedTags } = await supabase
-      .from('tags')
-      .select('id', { count: 'exact', head: true })
-      .eq('activated', true);
-    
-    const { count: totalPets } = await supabase
-      .from('pets')
-      .select('id', { count: 'exact', head: true });
-    
-    const stats = {
-      totalTags: totalTags || 0,
-      activatedTags: activatedTags || 0,
-      totalPets: totalPets || 0,
-      totalUsers: userStats?.[0]?.total_users || 0
+
+    // La función retorna un objeto con success y data
+    if (data && data.success) {
+      console.log('📊 Estadísticas obtenidas:', data.data);
+      return { success: true, data: data.data, error: null };
+    }
+
+    // Si la función retorna error
+    if (data && !data.success) {
+      return { success: false, data: null, error: data.error };
+    }
+
+    // Fallback: retornar stats vacías
+    return {
+      success: true,
+      data: { totalTags: 0, activatedTags: 0, totalPets: 0, totalUsers: 0 },
+      error: null
     };
-    
-    console.log('📊 Estadísticas obtenidas:', stats);
-    return { success: true, data: stats, error: null };
-    
+
   } catch (error) {
     console.error('Error obteniendo estadísticas:', error);
     return { success: false, data: null, error: error.message };
@@ -685,21 +654,32 @@ export const validateAndFixIntegrity = async () => {
 export const getIntegrityReport = async () => {
   try {
     console.log('📋 Obteniendo reporte de integridad...');
-    
+
     const { data, error } = await supabase
       .rpc('get_integrity_report');
-    
+
     if (error) {
       console.error('Error obteniendo reporte:', error);
-      return { success: false, data: null, error: error.message };
+      return { success: false, data: [], error: error.message };
     }
-    
-    console.log('📋 Reporte de integridad:', data);
-    return { success: true, data: data || [], error: null };
-    
+
+    // La función retorna un objeto con success y data
+    if (data && data.success) {
+      console.log('📋 Reporte de integridad:', data.data);
+      return { success: true, data: data.data || [], error: null };
+    }
+
+    // Si la función retorna error
+    if (data && !data.success) {
+      return { success: false, data: [], error: data.error };
+    }
+
+    console.log('📋 No hay problemas de integridad');
+    return { success: true, data: [], error: null };
+
   } catch (error) {
     console.error('Error inesperado obteniendo reporte:', error);
-    return { success: false, data: null, error: error.message };
+    return { success: false, data: [], error: error.message };
   }
 };
 
@@ -707,21 +687,31 @@ export const getIntegrityReport = async () => {
 export const fixSpecificTags = async (tagCodes) => {
   try {
     console.log('🔧 Corrigiendo tags específicos:', tagCodes);
-    
+
     const { data, error } = await supabase
       .rpc('fix_specific_tags', { tag_codes: tagCodes });
-    
+
     if (error) {
       console.error('Error corrigiendo tags:', error);
-      return { success: false, data: null, error: error.message };
+      return { success: false, data: [], error: error.message };
     }
-    
-    console.log('🔧 Resultado de corrección:', data);
-    return { success: true, data: data || [], error: null };
-    
+
+    // La función retorna un objeto con success y data
+    if (data && data.success) {
+      console.log('🔧 Resultado de corrección:', data.data);
+      return { success: true, data: data.data || [], error: null };
+    }
+
+    // Si la función retorna error
+    if (data && !data.success) {
+      return { success: false, data: [], error: data.error };
+    }
+
+    return { success: true, data: [], error: null };
+
   } catch (error) {
     console.error('Error inesperado corrigiendo tags:', error);
-    return { success: false, data: null, error: error.message };
+    return { success: false, data: [], error: error.message };
   }
 };
 
