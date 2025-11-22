@@ -15,8 +15,8 @@ import { validateTagCode, generateTagCode } from '@/components/forms/PetFormVali
 import FormErrorDisplay from '@/components/forms/FormErrorDisplay';
 import { isNFCSupported, writeNFCTag, generateActivationURL, getNFCInfo } from '@/utils/nfcUtils';
 
-// ID CORRECTO del usuario admin santiago.marcos@gmail.com obtenido de la consulta SQL
-export const ADMIN_USER_ID = '3d4b3b56-fba6-4d76-866c-f38551c7a6c4';
+// ID CORRECTO del usuario admin santiago.marcos@gmail.com
+export const ADMIN_USER_ID = '0b89482f-4271-49d8-a71f-afeb261a30f2';
 
 const AdminDashboard = () => {
   const { user, loading: authLoading } = useAuth();
