@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, QrCode, Download, Share2, Tag } from 'lucide-react';
+import { ArrowLeft, QrCode, Download, Share2, Tag, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/use-toast';
 import QRCode from 'qrcode';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
+import PetForm from '@/components/dashboard/PetForm';
 
 const PetProfile = () => {
   const { id: petId } = useParams();
@@ -18,6 +20,7 @@ const PetProfile = () => {
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [activationQrDataUrl, setActivationQrDataUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const loadPetAndTag = useCallback(async () => {
     setIsLoading(true);
@@ -160,6 +163,42 @@ const PetProfile = () => {
     }
   };
 
+  const handleUpdatePet = async (formData) => {
+    try {
+      const { data, error } = await supabase
+        .from('pets')
+        .update({
+          name: formData.name,
+          type: formData.type,
+          breed: formData.breed || null,
+          owner_name: formData.ownerName,
+          owner_contact: formData.contactInfo,
+          notes: formData.notes || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', petId)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setPet(data);
+      setIsEditDialogOpen(false);
+      toast({
+        title: "Mascota actualizada",
+        description: "La información de tu mascota ha sido actualizada exitosamente."
+      });
+    } catch (error) {
+      console.error('Error updating pet:', error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo actualizar la mascota.",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -204,6 +243,15 @@ const PetProfile = () => {
                       {pet.type} {pet.breed && `• ${pet.breed}`}
                     </CardDescription>
                   </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setIsEditDialogOpen(true)}
+                    className="text-white hover:bg-white/20"
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -309,6 +357,24 @@ const PetProfile = () => {
             </Card>
           </div>
         </motion.div>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <PetForm
+            isOpen={isEditDialogOpen}
+            setIsOpen={setIsEditDialogOpen}
+            initialData={{
+              name: pet?.name || '',
+              type: pet?.type || '',
+              breed: pet?.breed || '',
+              ownerName: pet?.owner_name || '',
+              contactInfo: pet?.owner_contact || '',
+              notes: pet?.notes || ''
+            }}
+            onSubmit={handleUpdatePet}
+            isEditing={true}
+          />
+        </Dialog>
       </div>
     </div>
   );
