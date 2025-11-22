@@ -67,9 +67,9 @@ const Home = () => {
             className="floating-animation"
           >
             <img
-              className="mx-auto rounded-2xl shadow-2xl max-w-4xl w-full"
+              className="mx-auto rounded-2xl shadow-2xl max-w-4xl w-full h-[400px] md:h-[600px] object-cover object-top"
               alt="Perro con Plakita NFC en su collar"
-              src="/plakita-ejemplo.webp" />
+              src="/plakita-Rottweiler copy.webp" />
           </motion.div>
         </div>
       </section>

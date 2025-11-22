@@ -16,7 +16,7 @@ const DemoProfile = () => {
     age: "3 años",
     color: "Negro con marrón",
     notes: "Max es muy amigable con personas y otros perros. Le encanta jugar con pelotas y salir a pasear. Es muy protector con la familia. Si lo encuentras, por favor contáctame de inmediato.",
-    imageUrl: "/plakita-ejemplo.webp",
+    imageUrl: "/plakita-Rottweiler copy.webp",
     ownerName: "María González",
     ownerPhone: "+1 (787) 555-1234",
     ownerEmail: "maria.gonzalez@email.com",
@@ -70,7 +70,7 @@ const DemoProfile = () => {
               <img
                 src={demoPet.imageUrl}
                 alt={demoPet.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-top"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
 
