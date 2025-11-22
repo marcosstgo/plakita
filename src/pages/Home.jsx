@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, QrCode, Shield, Smartphone, Tag, CheckCircle, ShoppingCart } from 'lucide-react';
+import { Heart, QrCode, Shield, Smartphone, Tag, CheckCircle, ShoppingCart, Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Home = () => {
@@ -31,8 +31,8 @@ const Home = () => {
               Plakita
             </h1>
             <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto">
-              Sistema de identificación de mascotas mediante códigos QR. 
-              Protege a tu mejor amigo con tecnología innovadora.
+              Sistema de identificación de mascotas con tecnología QR y NFC.
+              Protege a tu mejor amigo con la mejor tecnología disponible.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/register">
@@ -86,13 +86,13 @@ const Home = () => {
             {[
               {
                 icon: QrCode,
-                title: "Códigos QR Únicos",
-                description: "Cada Plakita tiene un QR irrepetible para la identificación precisa de tu mascota."
+                title: "QR + NFC",
+                description: "Cada Plakita incluye código QR y chip NFC para identificación instantánea de tu mascota."
               },
               {
-                icon: Smartphone,
-                title: "Acceso Instantáneo",
-                description: "Quien encuentre a tu mascota escanea el QR y accede al instante a la información de contacto."
+                icon: Wifi,
+                title: "Tecnología Contactless",
+                description: "Solo acerca tu teléfono a la Plakita y accede inmediatamente a la información de contacto."
               },
               {
                 icon: Shield,
@@ -156,10 +156,11 @@ const Home = () => {
             
             <ul className="space-y-3 text-left mb-8 max-w-md mx-auto">
               {[
-                "Placa física duradera con código QR único.",
+                "Placa física duradera con QR y chip NFC.",
+                "Doble tecnología: escaneo visual o contactless.",
                 "Perfil online personalizable para tu mascota.",
                 "Activación y gestión fácil desde la app.",
-                "Notificaciones si alguien escanea el QR (próximamente).",
+                "Notificaciones si alguien escanea (próximamente).",
                 "Soporte prioritario."
               ].map((benefit, index) => (
                 <li key={index} className="flex items-center text-white">
@@ -212,7 +213,7 @@ const Home = () => {
               {
                 step: "2",
                 title: "Escanea y Registra",
-                description: "Usa tu celular para escanear el QR y completa el perfil de tu mascota en minutos."
+                description: "Escanea el QR o acerca tu teléfono (NFC) y completa el perfil de tu mascota en minutos."
               },
               {
                 step: "3",

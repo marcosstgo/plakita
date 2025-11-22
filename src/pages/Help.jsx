@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { HelpCircle, MessageCircle, Phone, Mail, ChevronDown, ChevronUp, Tag, Heart, Shield, Users } from 'lucide-react';
+import { HelpCircle, MessageCircle, Phone, Mail, ChevronDown, ChevronUp, Tag, Heart, Shield, Users, Wifi } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -20,12 +20,17 @@ const Help = () => {
   const faqData = [
     {
       question: "¿Qué es una Plakita?",
-      answer: "Plakita es una placa con un código QR único que se coloca en el collar de tu mascota. Al escanearla, cualquier persona puede ver el perfil de tu mascota y contactarte en caso de que se pierda.",
+      answer: "Plakita es una placa inteligente con código QR y chip NFC que se coloca en el collar de tu mascota. Con solo escanear el QR o acercar tu teléfono (NFC), cualquier persona puede ver el perfil de tu mascota y contactarte en caso de que se pierda.",
       icon: Tag
     },
     {
+      question: "¿Qué diferencia hay entre QR y NFC?",
+      answer: "El código QR requiere que abras la cámara y apuntes a la placa. Con NFC (Near Field Communication), solo acercas tu teléfono a la Plakita y automáticamente se abre el perfil - sin necesidad de abrir apps. Ambas tecnologías funcionan igual de bien, NFC es simplemente más rápido.",
+      icon: Wifi
+    },
+    {
       question: "¿Cómo activo mi Plakita?",
-      answer: "Escanea el código QR de tu Plakita. Si aún no está activada, verás un mensaje con un formulario para registrarte. Solo tienes que crear tu cuenta, ingresar el código de activación que viene con la placa, y completar el perfil de tu mascota.",
+      answer: "Escanea el código QR de tu Plakita o acerca tu teléfono si tiene NFC. Si aún no está activada, verás un formulario para registrarte. Solo tienes que crear tu cuenta, ingresar el código de activación que viene con la placa, y completar el perfil de tu mascota.",
       icon: HelpCircle
     },
     {
@@ -50,7 +55,7 @@ const Help = () => {
     },
     {
       question: "¿La información de mi mascota es pública?",
-      answer: "Solo el perfil básico que ayuda a identificar a tu mascota (nombre, foto, y datos de contacto) es visible para quien escanee el QR. No mostramos información sensible ni direcciones exactas.",
+      answer: "Solo el perfil básico que ayuda a identificar a tu mascota (nombre, foto, y datos de contacto) es visible para quien escanee el QR o use NFC. No mostramos información sensible ni direcciones exactas.",
       icon: Shield
     },
     {
