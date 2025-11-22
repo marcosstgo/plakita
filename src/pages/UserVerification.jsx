@@ -101,7 +101,7 @@ const UserVerification = () => {
           className="mb-8"
         >
           <h1 className="text-4xl font-bold text-white mb-2 flex items-center">
-            <Shield className="h-10 w-10 mr-3 text-purple-300" />
+            <Shield className="h-10 w-10 mr-3 text-cyan-300" />
             Verificación de Usuario
           </h1>
           <p className="text-white/80 text-lg">
@@ -116,7 +116,7 @@ const UserVerification = () => {
             <Card className="gradient-card border-white/20 text-white">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Search className="h-6 w-6 mr-2 text-purple-300" />
+                  <Search className="h-6 w-6 mr-2 text-cyan-300" />
                   Buscar Usuario Específico
                 </CardTitle>
                 <CardDescription className="text-white/70">
@@ -136,7 +136,7 @@ const UserVerification = () => {
                   <Button 
                     type="submit" 
                     disabled={isLoading}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                    className="w-full bg-sky-600 hover:bg-sky-700 text-white"
                   >
                     {isLoading ? (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -196,7 +196,7 @@ const UserVerification = () => {
                 <Card className="gradient-card border-white/20 text-white">
                   <CardHeader>
                     <CardTitle className="flex items-center">
-                      <User className="h-6 w-6 mr-2 text-purple-300" />
+                      <User className="h-6 w-6 mr-2 text-cyan-300" />
                       Información del Usuario
                     </CardTitle>
                   </CardHeader>
@@ -278,7 +278,7 @@ const UserVerification = () => {
                   <Card className="gradient-card border-white/20 text-white">
                     <CardHeader>
                       <CardTitle className="flex items-center text-lg">
-                        <Tag className="h-5 w-5 mr-2 text-purple-300" />
+                        <Tag className="h-5 w-5 mr-2 text-cyan-300" />
                         Tags ({userInfo.tags.length})
                       </CardTitle>
                     </CardHeader>
@@ -313,14 +313,14 @@ const UserVerification = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center">
-                    <Users className="h-6 w-6 mr-2 text-purple-300" />
+                    <Users className="h-6 w-6 mr-2 text-cyan-300" />
                     Todos los Usuarios
                   </CardTitle>
                   <Button
                     onClick={handleLoadAllUsers}
                     disabled={isLoadingUsers}
                     size="sm"
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className="bg-sky-600 hover:bg-sky-700"
                   >
                     {isLoadingUsers ? (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

@@ -148,7 +148,7 @@ const Dashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-400 via-pink-500 to-red-500">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-400 via-emerald-500 to-red-500">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white"></div>
       </div>
     );
@@ -177,7 +177,7 @@ const Dashboard = () => {
           </h2>
           
           <Button 
-            className="bg-white text-purple-600 hover:bg-white/90"
+            className="bg-white text-sky-600 hover:bg-white/90"
             onClick={() => navigate('/activate-plakita')}
           >
             <Tag className="h-4 w-4 mr-2" />
@@ -201,7 +201,7 @@ const Dashboard = () => {
             </p>
             <Button 
               onClick={() => navigate('/activate-plakita')}
-              className="bg-white text-purple-600 hover:bg-white/90"
+              className="bg-white text-sky-600 hover:bg-white/90"
             >
               <Tag className="h-4 w-4 mr-2" />
               Activar Mi Primera Plakita

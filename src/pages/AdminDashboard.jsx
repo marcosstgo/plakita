@@ -633,7 +633,7 @@ const AdminDashboard = () => {
             <p>ID esperado: {ADMIN_USER_ID}</p>
           </div>
           <Link to="/">
-            <Button className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-lg">
+            <Button className="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-6 rounded-lg">
               Volver al Inicio
             </Button>
           </Link>
@@ -658,7 +658,7 @@ const AdminDashboard = () => {
           className="mb-10"
         >
           <h1 className="text-5xl font-bold text-white mb-3 flex items-center">
-            <ShieldCheck className="h-12 w-12 mr-4 text-purple-300" />
+            <ShieldCheck className="h-12 w-12 mr-4 text-cyan-300" />
             Panel de Administración Plakita
           </h1>
           <p className="text-white/80 text-lg">
@@ -785,10 +785,10 @@ const AdminDashboard = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <Card className="gradient-card border-purple-500/50 text-white shadow-lg hover:shadow-purple-400/30 transition-shadow duration-300">
+              <Card className="gradient-card border-cyan-500/50 text-white shadow-lg hover:shadow-sky-400/30 transition-shadow duration-300">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-purple-300">{stat.name}</CardTitle>
-                  <stat.icon className="h-5 w-5 text-purple-300" />
+                  <CardTitle className="text-sm font-medium text-cyan-300">{stat.name}</CardTitle>
+                  <stat.icon className="h-5 w-5 text-cyan-300" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{stat.value}</div>
@@ -804,17 +804,17 @@ const AdminDashboard = () => {
           animate={{ opacity: 1 }} 
           transition={{ delay: 0.4 }}
         >
-          <Card className="gradient-card border-purple-500/50 text-white">
+          <Card className="gradient-card border-cyan-500/50 text-white">
             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <CardTitle className="text-2xl text-purple-300">Gestión de Plakitas (Tags QR)</CardTitle>
+                <CardTitle className="text-2xl text-cyan-300">Gestión de Plakitas (Tags QR)</CardTitle>
                 <CardDescription className="text-white/70 mt-1">
                   Crea y visualiza las Plakitas disponibles para activación.
                 </CardDescription>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button 
-                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  className="bg-sky-600 hover:bg-sky-700 text-white"
                   onClick={() => setIsCreateTagDialogOpen(true)}
                   disabled={schemaErrors.length > 0}
                 >
@@ -890,30 +890,30 @@ const AdminDashboard = () => {
                       </Button>
                     </div>
                   ) : (
-                    <table className="min-w-full divide-y divide-purple-500/30">
+                    <table className="min-w-full divide-y divide-cyan-500/30">
                       <thead className="bg-white/5 sticky top-0 z-10">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-cyan-300 uppercase tracking-wider">
                             Código Plakita
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-cyan-300 uppercase tracking-wider">
                             Estado
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-cyan-300 uppercase tracking-wider">
                             Mascota Vinculada
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-cyan-300 uppercase tracking-wider">
                             Usuario
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-cyan-300 uppercase tracking-wider">
                             Fecha Creación
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-cyan-300 uppercase tracking-wider">
                             Acciones
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white/10 divide-y divide-purple-500/20">
+                      <tbody className="bg-white/10 divide-y divide-cyan-500/20">
                         {tags.map((tag) => (
                           <tr key={tag.id} className={`hover:bg-white/20 transition-colors duration-150 ${
                             tag.hasIntegrityIssue ? 'bg-red-500/10' : ''
@@ -936,7 +936,7 @@ const AdminDashboard = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               {tag.pets?.name ? (
                                 <div>
-                                  <span className="text-purple-300 font-medium">{tag.pets.name}</span>
+                                  <span className="text-cyan-300 font-medium">{tag.pets.name}</span>
                                   <br />
                                   <span className="text-white/60 text-xs">
                                     Dueño: {tag.pets.owner_name || 'No especificado'}
@@ -1008,10 +1008,10 @@ const AdminDashboard = () => {
 
       {/* Dialog para crear tag */}
       <Dialog open={isCreateTagDialogOpen} onOpenChange={setIsCreateTagDialogOpen}>
-        <DialogContent className="bg-gray-800 text-white border-purple-500 shadow-xl">
+        <DialogContent className="bg-gray-800 text-white border-cyan-500 shadow-xl">
           <DialogHeader>
-            <DialogTitle className="text-purple-300 text-2xl flex items-center">
-              <Plus className="h-6 w-6 mr-2 text-purple-300" />
+            <DialogTitle className="text-cyan-300 text-2xl flex items-center">
+              <Plus className="h-6 w-6 mr-2 text-cyan-300" />
               Crear Nueva Plakita (Tag QR)
             </DialogTitle>
           </DialogHeader>
@@ -1019,7 +1019,7 @@ const AdminDashboard = () => {
             <FormErrorDisplay errors={formErrors} />
             
             <div>
-              <Label htmlFor="tagCode" className="text-purple-300 font-medium">
+              <Label htmlFor="tagCode" className="text-cyan-300 font-medium">
                 Código Único de la Plakita
               </Label>
               <div className="flex gap-2 mt-2">
@@ -1032,7 +1032,7 @@ const AdminDashboard = () => {
                   }}
                   placeholder="Ej: PLK-XYZ123"
                   required
-                  className={`bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 ${
+                  className={`bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-cyan-500 focus:ring-cyan-500 ${
                     formErrors.code ? 'border-red-500' : ''
                   }`}
                   autoFocus
@@ -1040,7 +1040,7 @@ const AdminDashboard = () => {
                 <Button 
                   type="button" 
                   onClick={generateRandomCode}
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-3"
+                  className="bg-sky-600 hover:bg-sky-700 text-white px-3"
                 >
                   Generar
                 </Button>
@@ -1067,7 +1067,7 @@ const AdminDashboard = () => {
               </Button>
               <Button 
                 type="submit" 
-                className="bg-purple-600 hover:bg-purple-700 text-white" 
+                className="bg-sky-600 hover:bg-sky-700 text-white" 
                 disabled={isSubmitting}
               >
                 {isSubmitting && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>}
@@ -1090,7 +1090,7 @@ const AdminDashboard = () => {
           <div className="py-4">
             <p className="text-gray-300">
               ¿Estás seguro de que quieres eliminar la Plakita con código{' '}
-              <span className="font-semibold text-purple-300">{tagToDelete?.code}</span>?
+              <span className="font-semibold text-cyan-300">{tagToDelete?.code}</span>?
             </p>
             <p className="text-gray-400 text-sm mt-2">
               Esta acción no se puede deshacer y solo es posible si la Plakita no ha sido activada.

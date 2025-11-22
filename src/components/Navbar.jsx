@@ -52,7 +52,7 @@ const Navbar = () => {
                 {isUserAdmin && (
                   <>
                     <Link to="/admin">
-                      <Button variant="ghost" className="text-white hover:bg-purple-600/50 p-2 sm:px-4">
+                      <Button variant="ghost" className="text-white hover:bg-sky-600/50 p-2 sm:px-4">
                         <ShieldCheck className="h-4 w-4 sm:mr-2" />
                         <span className="hidden md:inline">Admin</span>
                       </Button>
@@ -88,7 +88,7 @@ const Navbar = () => {
                   </Button>
                 </Link>
                 <Link to="/register">
-                  <Button className="bg-white text-purple-600 hover:bg-white/90 text-sm sm:text-base px-2 sm:px-4">
+                  <Button className="bg-white text-sky-600 hover:bg-white/90 text-sm sm:text-base px-2 sm:px-4">
                     Registrarse
                   </Button>
                 </Link>

@@ -36,7 +36,7 @@ const Home = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/register">
-                <Button size="lg" className="bg-white text-purple-600 hover:bg-white/90 text-lg px-8 py-4">
+                <Button size="lg" className="bg-white text-sky-600 hover:bg-white/90 text-lg px-8 py-4">
                   Registra tu Plakita
                 </Button>
               </Link>
@@ -178,7 +178,7 @@ const Home = () => {
             </p>
             
             <Link to="/register">
-              <Button size="lg" className="bg-white text-purple-600 hover:bg-white/90 text-lg px-10 py-4 w-full sm:w-auto pulse-glow">
+              <Button size="lg" className="bg-white text-sky-600 hover:bg-white/90 text-lg px-10 py-4 w-full sm:w-auto pulse-glow">
                 <ShoppingCart className="h-5 w-5 mr-2" />
                 Ya tengo mi Plakita, ¡Activar!
               </Button>
@@ -227,7 +227,7 @@ const Home = () => {
                 transition={{ duration: 0.6, delay: index * 0.2 }}
                 className="text-center"
               >
-                <div className="w-16 h-16 bg-white text-purple-600 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6">
+                <div className="w-16 h-16 bg-white text-sky-600 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6">
                   {step.step}
                 </div>
                 <h3 className="text-2xl font-semibold text-white mb-4">
@@ -258,7 +258,7 @@ const Home = () => {
             </p>
             <Button 
               size="lg" 
-              className="bg-white text-purple-600 hover:bg-white/90 text-lg px-8 py-4 pulse-glow"
+              className="bg-white text-sky-600 hover:bg-white/90 text-lg px-8 py-4 pulse-glow"
               onClick={scrollToPricing}
             >
               Ver Planes y Beneficios

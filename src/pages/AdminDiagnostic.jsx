@@ -102,7 +102,7 @@ const AdminDiagnostic = () => {
           className="mb-8"
         >
           <h1 className="text-4xl font-bold text-white mb-2 flex items-center">
-            <Shield className="h-10 w-10 mr-3 text-purple-300" />
+            <Shield className="h-10 w-10 mr-3 text-cyan-300" />
             Diagnóstico de Usuario Admin
           </h1>
           <p className="text-white/80 text-lg">
@@ -115,7 +115,7 @@ const AdminDiagnostic = () => {
           <Card className="gradient-card border-white/20 text-white">
             <CardHeader>
               <CardTitle className="flex items-center">
-                <User className="h-6 w-6 mr-2 text-purple-300" />
+                <User className="h-6 w-6 mr-2 text-cyan-300" />
                 Usuario Actual
               </CardTitle>
             </CardHeader>
@@ -146,7 +146,7 @@ const AdminDiagnostic = () => {
             <Button
               onClick={runDiagnostic}
               disabled={isLoading}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
+              className="bg-sky-600 hover:bg-sky-700 text-white"
             >
               {isLoading ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -175,7 +175,7 @@ const AdminDiagnostic = () => {
             <Card className="gradient-card border-white/20 text-white">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Shield className="h-6 w-6 mr-2 text-purple-300" />
+                  <Shield className="h-6 w-6 mr-2 text-cyan-300" />
                   Resultados del Diagnóstico
                 </CardTitle>
                 <CardDescription className="text-white/70">
@@ -187,7 +187,7 @@ const AdminDiagnostic = () => {
                   <>
                     {/* Estado de admin */}
                     <div className="space-y-3">
-                      <h3 className="text-lg font-semibold text-purple-300">Estado de Administrador</h3>
+                      <h3 className="text-lg font-semibold text-cyan-300">Estado de Administrador</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex items-center space-x-2">
                           <StatusIcon status={diagnosticResult.adminStatus.isAdminByEmail ? 'success' : 'error'} />
@@ -212,7 +212,7 @@ const AdminDiagnostic = () => {
 
                     {/* Estado en public.users */}
                     <div className="space-y-3">
-                      <h3 className="text-lg font-semibold text-purple-300">Estado en public.users</h3>
+                      <h3 className="text-lg font-semibold text-cyan-300">Estado en public.users</h3>
                       <div className="flex items-center space-x-2">
                         <StatusIcon status={diagnosticResult.publicUser ? 'success' : 'error'} />
                         <span>Usuario en public.users: {diagnosticResult.publicUser ? 'Sí' : 'No'}</span>
@@ -233,7 +233,7 @@ const AdminDiagnostic = () => {
                     {/* Recomendaciones */}
                     {diagnosticResult.recommendations.length > 0 && (
                       <div className="space-y-3">
-                        <h3 className="text-lg font-semibold text-purple-300">Recomendaciones</h3>
+                        <h3 className="text-lg font-semibold text-cyan-300">Recomendaciones</h3>
                         <div className="space-y-2">
                           {diagnosticResult.recommendations.map((rec, index) => (
                             <div 

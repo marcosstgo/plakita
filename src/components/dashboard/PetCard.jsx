@@ -47,7 +47,7 @@ const PetCard = ({ pet, index, onEdit, onDelete }) => {
       <Card className="pet-card border-white/20 text-white overflow-hidden h-full flex flex-col">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <Link to={`/pet/${pet.id}`} className="hover:text-purple-300 transition-colors text-xl font-bold">
+            <Link to={`/pet/${pet.id}`} className="hover:text-cyan-300 transition-colors text-xl font-bold">
               {pet.name}
             </Link>
             <div className="flex space-x-1">
@@ -77,8 +77,8 @@ const PetCard = ({ pet, index, onEdit, onDelete }) => {
           <div className="space-y-3">
             {pet.tags && (
               <div className="flex items-center space-x-2 bg-black/20 p-2 rounded-md">
-                <Tag className="h-5 w-5 text-purple-300" />
-                <span className="font-mono text-sm text-purple-300">{pet.tags.code}</span>
+                <Tag className="h-5 w-5 text-cyan-300" />
+                <span className="font-mono text-sm text-cyan-300">{pet.tags.code}</span>
               </div>
             )}
             <div>
@@ -105,7 +105,7 @@ const PetCard = ({ pet, index, onEdit, onDelete }) => {
             )}
             <Button
               onClick={() => downloadActivationQR(pet)}
-              className="w-full bg-white text-purple-600 hover:bg-white/90"
+              className="w-full bg-white text-sky-600 hover:bg-white/90"
               disabled={!pet.tags || !pet.tags.code}
             >
               <Download className="h-4 w-4 mr-2" />

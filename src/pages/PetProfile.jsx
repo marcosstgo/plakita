@@ -209,10 +209,10 @@ const PetProfile = () => {
               <CardContent className="space-y-4">
                 {tagInfo?.code && (
                   <div className="flex items-center space-x-2 bg-black/30 p-3 rounded-lg">
-                    <Tag className="h-6 w-6 text-purple-300" />
+                    <Tag className="h-6 w-6 text-cyan-300" />
                     <div>
-                      <p className="text-xs text-purple-400">Código de Plakita (Tag)</p>
-                      <p className="font-mono text-lg text-purple-300">{tagInfo.code}</p>
+                      <p className="text-xs text-sky-400">Código de Plakita (Tag)</p>
+                      <p className="font-mono text-lg text-cyan-300">{tagInfo.code}</p>
                     </div>
                   </div>
                 )}
@@ -244,7 +244,7 @@ const PetProfile = () => {
                    )}
                   <Button
                     onClick={shareProfile}
-                    className="w-full bg-white text-purple-600 hover:bg-white/90"
+                    className="w-full bg-white text-sky-600 hover:bg-white/90"
                     disabled={!pet.qr_activated || !tagInfo?.activated}
                   >
                     <Share2 className="h-4 w-4 mr-2" />

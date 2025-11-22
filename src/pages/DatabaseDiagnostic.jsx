@@ -274,7 +274,7 @@ const DatabaseDiagnostic = () => {
           className="mb-8"
         >
           <h1 className="text-4xl font-bold text-white mb-2 flex items-center">
-            <Database className="h-10 w-10 mr-3 text-purple-300" />
+            <Database className="h-10 w-10 mr-3 text-cyan-300" />
             Diagnóstico Completo de Base de Datos
           </h1>
           <p className="text-white/80 text-lg">
@@ -287,7 +287,7 @@ const DatabaseDiagnostic = () => {
           <Button
             onClick={runCompleteDiagnostic}
             disabled={isLoading}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
+            className="bg-sky-600 hover:bg-sky-700 text-white"
           >
             {isLoading ? (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -305,7 +305,7 @@ const DatabaseDiagnostic = () => {
             <Card className="gradient-card border-white/20 text-white">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Shield className="h-6 w-6 mr-2 text-purple-300" />
+                  <Shield className="h-6 w-6 mr-2 text-cyan-300" />
                   Resumen General
                 </CardTitle>
               </CardHeader>
@@ -324,7 +324,7 @@ const DatabaseDiagnostic = () => {
                     <p className="text-sm text-white/70">Advertencias</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-purple-300">{diagnosticResult.summary.totalChecks}</p>
+                    <p className="text-2xl font-bold text-cyan-300">{diagnosticResult.summary.totalChecks}</p>
                     <p className="text-sm text-white/70">Total</p>
                   </div>
                 </div>
@@ -348,7 +348,7 @@ const DatabaseDiagnostic = () => {
             <Card className="gradient-card border-white/20 text-white">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Table className="h-6 w-6 mr-2 text-purple-300" />
+                  <Table className="h-6 w-6 mr-2 text-cyan-300" />
                   Estado de las Tablas
                 </CardTitle>
               </CardHeader>
@@ -373,7 +373,7 @@ const DatabaseDiagnostic = () => {
             <Card className="gradient-card border-white/20 text-white">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Columns className="h-6 w-6 mr-2 text-purple-300" />
+                  <Columns className="h-6 w-6 mr-2 text-cyan-300" />
                   Columnas Críticas
                 </CardTitle>
               </CardHeader>
@@ -401,7 +401,7 @@ const DatabaseDiagnostic = () => {
             <Card className="gradient-card border-white/20 text-white">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Shield className="h-6 w-6 mr-2 text-purple-300" />
+                  <Shield className="h-6 w-6 mr-2 text-cyan-300" />
                   Usuario Administrador
                 </CardTitle>
               </CardHeader>
@@ -436,22 +436,22 @@ const DatabaseDiagnostic = () => {
               <Card className="gradient-card border-white/20 text-white">
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <Database className="h-6 w-6 mr-2 text-purple-300" />
+                    <Database className="h-6 w-6 mr-2 text-cyan-300" />
                     Datos Existentes
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
-                      <p className="text-2xl font-bold text-purple-300">{diagnosticResult.dataCounts.users}</p>
+                      <p className="text-2xl font-bold text-cyan-300">{diagnosticResult.dataCounts.users}</p>
                       <p className="text-sm text-white/70">Usuarios</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-purple-300">{diagnosticResult.dataCounts.tags}</p>
+                      <p className="text-2xl font-bold text-cyan-300">{diagnosticResult.dataCounts.tags}</p>
                       <p className="text-sm text-white/70">Tags</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-purple-300">{diagnosticResult.dataCounts.pets}</p>
+                      <p className="text-2xl font-bold text-cyan-300">{diagnosticResult.dataCounts.pets}</p>
                       <p className="text-sm text-white/70">Mascotas</p>
                     </div>
                   </div>
@@ -463,7 +463,7 @@ const DatabaseDiagnostic = () => {
             <Card className="gradient-card border-white/20 text-white">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Key className="h-6 w-6 mr-2 text-purple-300" />
+                  <Key className="h-6 w-6 mr-2 text-cyan-300" />
                   Vista Crítica
                 </CardTitle>
               </CardHeader>

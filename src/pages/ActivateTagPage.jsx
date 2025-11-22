@@ -371,7 +371,7 @@ const ActivateTagPage = () => {
         <Card className="gradient-card border-white/20 text-white">
           <CardHeader className="text-center">
             <div className="mx-auto bg-white/20 p-3 rounded-full inline-block mb-4">
-              <Tag className="h-10 w-10 text-purple-300" />
+              <Tag className="h-10 w-10 text-cyan-300" />
             </div>
             <CardTitle className="text-3xl font-bold">
               {pageTitle}
@@ -384,7 +384,7 @@ const ActivateTagPage = () => {
             {!showPetForm && (
               <form onSubmit={(e) => { e.preventDefault(); handleFetchTagInfo(tagCode); }} className="space-y-6">
                 <div>
-                  <Label htmlFor="tagCodeInput" className="text-purple-300 flex items-center">
+                  <Label htmlFor="tagCodeInput" className="text-cyan-300 flex items-center">
                     <Tag className="h-4 w-4 mr-2" /> Código de la Plakita
                   </Label>
                   <Input
@@ -403,11 +403,11 @@ const ActivateTagPage = () => {
                 <div className="flex gap-2">
                   <Button
                     type="submit"
-                    className="flex-1 bg-white text-purple-600 hover:bg-purple-200 font-bold py-3 text-lg"
+                    className="flex-1 bg-white text-sky-600 hover:bg-cyan-200 font-bold py-3 text-lg"
                     disabled={isFetchingTag}
                   >
                     {isFetchingTag ? (
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mr-2"></div>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-sky-600 mr-2"></div>
                     ) : (
                       <CheckCircle className="h-5 w-5 mr-2" />
                     )}
@@ -489,8 +489,8 @@ const ActivateTagPage = () => {
             {showPetForm && tagInfo && (
               <>
                 <div className="my-4 p-3 bg-black/20 rounded-md">
-                  <p className="text-sm text-purple-300">Plakita Seleccionada:</p>
-                  <p className="font-mono text-lg text-purple-200">{tagInfo.code}</p>
+                  <p className="text-sm text-cyan-300">Plakita Seleccionada:</p>
+                  <p className="font-mono text-lg text-cyan-200">{tagInfo.code}</p>
                   {tagInfo.activated && petInfo && <p className="text-xs text-green-300">Esta Plakita ya está activada para <span className="font-semibold">{petInfo.name}</span>. Puedes editar los datos.</p>}
                   {tagInfo.activated && !petInfo && tagInfo.pet_id && <p className="text-xs text-yellow-300">Esta Plakita está activada pero la mascota asociada no se encontró. Completa los datos para re-vincular.</p>}
                   {!tagInfo.activated && <p className="text-xs text-yellow-300">Plakita lista para activar. Completa los datos de tu mascota.</p>}
@@ -500,7 +500,7 @@ const ActivateTagPage = () => {
                 
                 <form onSubmit={handleSubmitPetInfo} className="space-y-6">
                   <div>
-                    <Label htmlFor="name" className="text-purple-300 flex items-center">
+                    <Label htmlFor="name" className="text-cyan-300 flex items-center">
                       <PawPrint className="h-4 w-4 mr-2" /> Nombre de la Mascota
                     </Label>
                     <Input 
@@ -521,7 +521,7 @@ const ActivateTagPage = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="type" className="text-purple-300 flex items-center">
+                    <Label htmlFor="type" className="text-cyan-300 flex items-center">
                       <PawPrint className="h-4 w-4 mr-2" /> Tipo de Mascota
                     </Label>
                     <Select 
@@ -538,18 +538,18 @@ const ActivateTagPage = () => {
                       }`}>
                         <SelectValue placeholder="Selecciona el tipo" />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-purple-500 text-white">
-                        <SelectItem value="perro" className="hover:bg-purple-600">Perro</SelectItem>
-                        <SelectItem value="gato" className="hover:bg-purple-600">Gato</SelectItem>
-                        <SelectItem value="ave" className="hover:bg-purple-600">Ave</SelectItem>
-                        <SelectItem value="conejo" className="hover:bg-purple-600">Conejo</SelectItem>
-                        <SelectItem value="otro" className="hover:bg-purple-600">Otro</SelectItem>
+                      <SelectContent className="bg-gray-800 border-cyan-500 text-white">
+                        <SelectItem value="perro" className="hover:bg-sky-600">Perro</SelectItem>
+                        <SelectItem value="gato" className="hover:bg-sky-600">Gato</SelectItem>
+                        <SelectItem value="ave" className="hover:bg-sky-600">Ave</SelectItem>
+                        <SelectItem value="conejo" className="hover:bg-sky-600">Conejo</SelectItem>
+                        <SelectItem value="otro" className="hover:bg-sky-600">Otro</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   
                   <div>
-                    <Label htmlFor="breed" className="text-purple-300 flex items-center">
+                    <Label htmlFor="breed" className="text-cyan-300 flex items-center">
                       <PawPrint className="h-4 w-4 mr-2" /> Raza (Opcional)
                     </Label>
                     <Input 
@@ -566,7 +566,7 @@ const ActivateTagPage = () => {
                   <hr className="border-white/20" />
                   
                   <div>
-                    <Label htmlFor="ownerName" className="text-purple-300 flex items-center">
+                    <Label htmlFor="ownerName" className="text-cyan-300 flex items-center">
                       <UserCircle className="h-4 w-4 mr-2" /> Nombre del Dueño
                     </Label>
                     <Input 
@@ -587,7 +587,7 @@ const ActivateTagPage = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="ownerPhone" className="text-purple-300 flex items-center">
+                    <Label htmlFor="ownerPhone" className="text-cyan-300 flex items-center">
                       <Phone className="h-4 w-4 mr-2" /> Teléfono del Dueño (Opcional)
                     </Label>
                     <Input 
@@ -605,7 +605,7 @@ const ActivateTagPage = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="ownerEmail" className="text-purple-300 flex items-center">
+                    <Label htmlFor="ownerEmail" className="text-cyan-300 flex items-center">
                       <Mail className="h-4 w-4 mr-2" /> Email del Dueño (Opcional)
                     </Label>
                     <Input 
@@ -629,7 +629,7 @@ const ActivateTagPage = () => {
                   <hr className="border-white/20" />
                   
                   <div>
-                    <Label htmlFor="notes" className="text-purple-300 flex items-center">
+                    <Label htmlFor="notes" className="text-cyan-300 flex items-center">
                       <Edit3 className="h-4 w-4 mr-2" /> Notas Adicionales (Opcional)
                     </Label>
                     <Textarea 
@@ -644,11 +644,11 @@ const ActivateTagPage = () => {
                   
                   <Button 
                     type="submit" 
-                    className="w-full bg-white text-purple-600 hover:bg-purple-200 font-bold py-3 text-lg" 
+                    className="w-full bg-white text-sky-600 hover:bg-cyan-200 font-bold py-3 text-lg" 
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mr-2"></div>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-sky-600 mr-2"></div>
                     ) : (
                       ((tagInfo?.activated && petInfo) ? <CheckCircle className="h-5 w-5 mr-2" /> : <Tag className="h-5 w-5 mr-2" />)
                     )}

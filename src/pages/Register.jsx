@@ -159,11 +159,11 @@ const Register = () => {
 
               <Button
                 type="submit"
-                className="w-full bg-white text-purple-600 hover:bg-white/90"
+                className="w-full bg-white text-sky-600 hover:bg-white/90"
                 disabled={loading}
               >
                 {loading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-sky-600 mr-2"></div>
                 ) : (
                   <UserPlus className="h-4 w-4 mr-2" />
                 )}

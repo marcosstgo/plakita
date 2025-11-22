@@ -68,7 +68,7 @@ const DatabaseStatus = () => {
         <Button 
           onClick={checkStatus} 
           disabled={isChecking}
-          className="w-full bg-white text-purple-600 hover:bg-white/90"
+          className="w-full bg-white text-sky-600 hover:bg-white/90"
         >
           {isChecking ? 'Verificando...' : 'Verificar Estado'}
         </Button>

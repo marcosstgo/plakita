@@ -36,21 +36,25 @@ export const AuthProvider = ({ children }) => {
 
     getSession();
 
+    // IMPORTANTE: Usar un async block dentro del callback para evitar deadlocks
+    // según las mejores prácticas de Supabase
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        try {
-          const currentUser = session?.user ?? null;
-          setUser(currentUser);
-          
-          // Sincronizar usuario con public.users en cada cambio de auth
-          if (currentUser && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-            await syncCurrentUser(currentUser);
+      (event, session) => {
+        (async () => {
+          try {
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
+
+            // Sincronizar usuario con public.users en cada cambio de auth
+            if (currentUser && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+              await syncCurrentUser(currentUser);
+            }
+          } catch (error) {
+            console.error('Error in auth state change:', error);
+          } finally {
+            setLoading(false);
           }
-        } catch (error) {
-          console.error('Error in auth state change:', error);
-        } finally {
-          setLoading(false);
-        }
+        })();
       }
     );
 

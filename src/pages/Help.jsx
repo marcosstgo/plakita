@@ -96,7 +96,7 @@ const Help = () => {
           <Card className="gradient-card border-white/20 text-white">
             <CardHeader className="text-center">
               <CardTitle className="text-3xl font-bold flex items-center justify-center">
-                <Heart className="h-8 w-8 mr-3 text-purple-300" />
+                <Heart className="h-8 w-8 mr-3 text-cyan-300" />
                 Preguntas Frecuentes (FAQ)
               </CardTitle>
               <CardDescription className="text-white/80 text-lg">
@@ -117,7 +117,7 @@ const Help = () => {
                     className="w-full p-4 text-left bg-white/5 hover:bg-white/10 transition-colors duration-200 flex items-center justify-between"
                   >
                     <div className="flex items-center">
-                      <faq.icon className="h-5 w-5 text-purple-300 mr-3 flex-shrink-0" />
+                      <faq.icon className="h-5 w-5 text-cyan-300 mr-3 flex-shrink-0" />
                       <span className="font-semibold text-white">{faq.question}</span>
                     </div>
                     {openFAQ === index ? (
@@ -222,7 +222,7 @@ const Help = () => {
         >
           <Card className="gradient-card border-white/20 text-white">
             <CardContent className="py-8">
-              <Heart className="h-12 w-12 text-purple-300 mx-auto mb-4" />
+              <Heart className="h-12 w-12 text-cyan-300 mx-auto mb-4" />
               <h3 className="text-2xl font-semibold mb-4">
                 ¿No encontraste lo que buscabas?
               </h3>

@@ -44,9 +44,9 @@ const PetForm = ({ isOpen, setIsOpen, initialData, onSubmit, isEditing }) => {
   };
 
   return (
-    <DialogContent className="max-w-md bg-gray-800 text-white border-purple-500">
+    <DialogContent className="max-w-md bg-gray-800 text-white border-cyan-500">
       <DialogHeader>
-        <DialogTitle className="text-purple-400">
+        <DialogTitle className="text-sky-400">
           {isEditing ? 'Editar Mascota' : 'Registrar Mascota y Nuevo Tag'}
         </DialogTitle>
         <DialogDescription className="text-gray-400">
@@ -56,7 +56,7 @@ const PetForm = ({ isOpen, setIsOpen, initialData, onSubmit, isEditing }) => {
       
       <form onSubmit={handleSubmit} className="space-y-4 pt-4">
         <div className="space-y-2">
-          <Label htmlFor="name" className="text-purple-300">Nombre de la mascota</Label>
+          <Label htmlFor="name" className="text-cyan-300">Nombre de la mascota</Label>
           <Input
             id="name"
             value={formData.name || ''}
@@ -68,7 +68,7 @@ const PetForm = ({ isOpen, setIsOpen, initialData, onSubmit, isEditing }) => {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="type" className="text-purple-300">Tipo de mascota</Label>
+          <Label htmlFor="type" className="text-cyan-300">Tipo de mascota</Label>
           <Select 
             value={formData.type || ''} 
             onValueChange={(value) => handleSelectChange('type', value)} 
@@ -78,17 +78,17 @@ const PetForm = ({ isOpen, setIsOpen, initialData, onSubmit, isEditing }) => {
               <SelectValue placeholder="Selecciona el tipo" />
             </SelectTrigger>
             <SelectContent className="bg-gray-700 border-gray-600 text-white">
-              <SelectItem value="perro" className="hover:bg-purple-600">Perro</SelectItem>
-              <SelectItem value="gato" className="hover:bg-purple-600">Gato</SelectItem>
-              <SelectItem value="ave" className="hover:bg-purple-600">Ave</SelectItem>
-              <SelectItem value="conejo" className="hover:bg-purple-600">Conejo</SelectItem>
-              <SelectItem value="otro" className="hover:bg-purple-600">Otro</SelectItem>
+              <SelectItem value="perro" className="hover:bg-sky-600">Perro</SelectItem>
+              <SelectItem value="gato" className="hover:bg-sky-600">Gato</SelectItem>
+              <SelectItem value="ave" className="hover:bg-sky-600">Ave</SelectItem>
+              <SelectItem value="conejo" className="hover:bg-sky-600">Conejo</SelectItem>
+              <SelectItem value="otro" className="hover:bg-sky-600">Otro</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="breed" className="text-purple-300">Raza (opcional)</Label>
+          <Label htmlFor="breed" className="text-cyan-300">Raza (opcional)</Label>
           <Input
             id="breed"
             value={formData.breed || ''}
@@ -99,7 +99,7 @@ const PetForm = ({ isOpen, setIsOpen, initialData, onSubmit, isEditing }) => {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="ownerName" className="text-purple-300">Nombre del dueño</Label>
+          <Label htmlFor="ownerName" className="text-cyan-300">Nombre del dueño</Label>
           <Input
             id="ownerName"
             value={formData.ownerName || ''}
@@ -111,7 +111,7 @@ const PetForm = ({ isOpen, setIsOpen, initialData, onSubmit, isEditing }) => {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="contactInfo" className="text-purple-300">Información de contacto</Label>
+          <Label htmlFor="contactInfo" className="text-cyan-300">Información de contacto</Label>
           <Input
             id="contactInfo" 
             value={formData.contactInfo || ''}
@@ -123,7 +123,7 @@ const PetForm = ({ isOpen, setIsOpen, initialData, onSubmit, isEditing }) => {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="notes" className="text-purple-300">Notas adicionales (opcional)</Label>
+          <Label htmlFor="notes" className="text-cyan-300">Notas adicionales (opcional)</Label>
           <Textarea
             id="notes"
             value={formData.notes || ''}
@@ -134,7 +134,7 @@ const PetForm = ({ isOpen, setIsOpen, initialData, onSubmit, isEditing }) => {
           />
         </div>
 
-        <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white mt-6">
+        <Button type="submit" className="w-full bg-sky-600 hover:bg-sky-700 text-white mt-6">
           {isEditing ? 'Actualizar Mascota' : 'Guardar Mascota y Crear Tag'}
         </Button>
       </form>

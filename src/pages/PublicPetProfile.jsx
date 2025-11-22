@@ -107,7 +107,7 @@ const PublicPetProfile = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-400 via-pink-500 to-red-500">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-400 via-emerald-500 to-red-500">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white"></div>
       </div>
     );
@@ -115,7 +115,7 @@ const PublicPetProfile = () => {
 
   if (!pet) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-400 via-emerald-500 to-red-500 px-4">
         <Card className="gradient-card border-white/20 max-w-md mx-auto text-white">
           <CardContent className="text-center py-12">
             <ShieldAlert className="h-16 w-16 text-red-400 mx-auto mb-6" />
@@ -124,7 +124,7 @@ const PublicPetProfile = () => {
               El código QR que escaneaste no corresponde a una Plakita registrada o válida.
             </p>
             <Link to="/">
-              <Button className="bg-white text-purple-600 hover:bg-white/90">
+              <Button className="bg-white text-sky-600 hover:bg-white/90">
                 Ir a la Página Principal
               </Button>
             </Link>
@@ -137,7 +137,7 @@ const PublicPetProfile = () => {
   // CAMBIO: Verificar tanto qr_activated como tag.activated para mostrar el perfil
   if (!pet.qr_activated || !tag?.activated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-400 via-emerald-500 to-red-500 px-4">
         <Card className="gradient-card border-white/20 max-w-md mx-auto text-white">
           <CardContent className="text-center py-12">
             <QrCode className="h-16 w-16 text-yellow-300 mx-auto mb-6" />
@@ -149,7 +149,7 @@ const PublicPetProfile = () => {
               <p className="text-sm text-white/70 mb-6">Código de Tag: <span className="font-mono">{tag.code}</span></p>
             )}
             <Link to="/">
-              <Button className="bg-white text-purple-600 hover:bg-white/90">
+              <Button className="bg-white text-sky-600 hover:bg-white/90">
                 Ir a la Página Principal
               </Button>
             </Link>
@@ -160,7 +160,7 @@ const PublicPetProfile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-500 via-emerald-500 to-orange-500 py-8 px-4">
       <div className="max-w-2xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -279,7 +279,7 @@ const PublicPetProfile = () => {
                           }
                         }} 
                         size="lg"
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white text-lg px-10 py-6 rounded-full shadow-xl transform hover:scale-105 transition-transform duration-200 ease-in-out pulse-glow"
+                        className="w-full bg-sky-600 hover:bg-sky-700 text-white text-lg px-10 py-6 rounded-full shadow-xl transform hover:scale-105 transition-transform duration-200 ease-in-out pulse-glow"
                       >
                         <Phone className="h-6 w-6 mr-3" />
                         Contactar
