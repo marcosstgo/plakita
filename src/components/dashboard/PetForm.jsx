@@ -11,6 +11,9 @@ const PetForm = ({ isOpen, setIsOpen, initialData, onSubmit, isEditing }) => {
     name: '',
     type: '',
     breed: '',
+    age: '',
+    color: '',
+    location: '',
     ownerName: '',
     contactInfo: '',
     notes: ''
@@ -22,6 +25,9 @@ const PetForm = ({ isOpen, setIsOpen, initialData, onSubmit, isEditing }) => {
         name: '',
         type: '',
         breed: '',
+        age: '',
+        color: '',
+        location: '',
         ownerName: '',
         contactInfo: '',
         notes: ''
@@ -94,6 +100,39 @@ const PetForm = ({ isOpen, setIsOpen, initialData, onSubmit, isEditing }) => {
             value={formData.breed || ''}
             onChange={handleChange}
             placeholder="Ej: Golden Retriever"
+            className="bg-gray-700 border-gray-600 text-white placeholder-gray-500"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="age" className="text-cyan-300">Edad (opcional)</Label>
+          <Input
+            id="age"
+            value={formData.age || ''}
+            onChange={handleChange}
+            placeholder="Ej: 3 años, 6 meses"
+            className="bg-gray-700 border-gray-600 text-white placeholder-gray-500"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="color" className="text-cyan-300">Color (opcional)</Label>
+          <Input
+            id="color"
+            value={formData.color || ''}
+            onChange={handleChange}
+            placeholder="Ej: Negro con marrón"
+            className="bg-gray-700 border-gray-600 text-white placeholder-gray-500"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="location" className="text-cyan-300">Ubicación (opcional)</Label>
+          <Input
+            id="location"
+            value={formData.location || ''}
+            onChange={handleChange}
+            placeholder="Ej: San Juan, Puerto Rico"
             className="bg-gray-700 border-gray-600 text-white placeholder-gray-500"
           />
         </div>

@@ -38,12 +38,15 @@ const ActivateTagPage = () => {
   const [nfcInfo, setNfcInfo] = useState(null);
 
   const [formData, setFormData] = useState({
-    name: '', 
-    type: '', 
-    breed: '', 
-    ownerName: '', 
-    ownerPhone: '', 
-    ownerEmail: '', 
+    name: '',
+    type: '',
+    breed: '',
+    age: '',
+    color: '',
+    location: '',
+    ownerName: '',
+    ownerPhone: '',
+    ownerEmail: '',
     notes: ''
   });
 
@@ -249,9 +252,12 @@ const ActivateTagPage = () => {
           // El dueño está viendo, permitir editar
           setPetInfo(associatedPet);
           setFormData({
-            name: associatedPet.name || '', 
-            type: associatedPet.type || '', 
+            name: associatedPet.name || '',
+            type: associatedPet.type || '',
             breed: associatedPet.breed || '',
+            age: associatedPet.age || '',
+            color: associatedPet.color || '',
+            location: associatedPet.location || '',
             ownerName: associatedPet.owner_name || user?.user_metadata?.full_name || '',
             ownerPhone: associatedPet.owner_phone || user?.user_metadata?.phone || '',
             ownerEmail: associatedPet.owner_contact || user?.email || '',
@@ -266,12 +272,17 @@ const ActivateTagPage = () => {
         } else {
           // Tag no activado pero tiene mascota asociada
           setShowPetForm(true);
-          setFormData({ 
-            name: '', type: '', breed: '', 
-            ownerName: user?.user_metadata?.full_name || '', 
+          setFormData({
+            name: '',
+            type: '',
+            breed: '',
+            age: '',
+            color: '',
+            location: '',
+            ownerName: user?.user_metadata?.full_name || '',
             ownerPhone: user?.user_metadata?.phone || '',
-            ownerEmail: user?.email || '', 
-            notes: '' 
+            ownerEmail: user?.email || '',
+            notes: ''
           });
           toast({ 
             title: "Plakita Disponible", 
@@ -299,13 +310,18 @@ const ActivateTagPage = () => {
             navigate(`/register?redirect=${encodeURIComponent(redirectTo)}`);
             return;
           }
-          setShowPetForm(true); 
-          setFormData({ 
-            name: '', type: '', breed: '', 
-            ownerName: user.user_metadata?.full_name || '', 
+          setShowPetForm(true);
+          setFormData({
+            name: '',
+            type: '',
+            breed: '',
+            age: '',
+            color: '',
+            location: '',
+            ownerName: user.user_metadata?.full_name || '',
             ownerPhone: user.user_metadata?.phone || '',
-            ownerEmail: user.email || '', 
-            notes: '' 
+            ownerEmail: user.email || '',
+            notes: ''
           });
           toast({ 
             title: "Plakita Disponible", 
@@ -375,12 +391,15 @@ const ActivateTagPage = () => {
 
     const petPayload = {
       id: petInfo?.id || null,
-      name: sanitizedData.name, 
-      type: sanitizedData.type, 
+      name: sanitizedData.name,
+      type: sanitizedData.type,
       breed: sanitizedData.breed,
-      owner_name: sanitizedData.ownerName, 
-      owner_contact: formData.ownerEmail, // Email como contacto principal
-      owner_phone: formData.ownerPhone, // Teléfono separado
+      age: formData.age,
+      color: formData.color,
+      location: formData.location,
+      owner_name: sanitizedData.ownerName,
+      owner_contact: formData.ownerEmail,
+      owner_phone: formData.ownerPhone,
       notes: sanitizedData.notes
     };
 
@@ -632,17 +651,62 @@ const ActivateTagPage = () => {
                     <Label htmlFor="breed" className="text-cyan-300 flex items-center">
                       <PawPrint className="h-4 w-4 mr-2" /> Raza (Opcional)
                     </Label>
-                    <Input 
-                      id="breed" 
-                      name="breed" 
-                      type="text" 
-                      placeholder="Ej: Labrador, Siamés" 
-                      value={formData.breed} 
-                      onChange={(e) => setFormData({ ...formData, breed: e.target.value })} 
-                      className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50" 
+                    <Input
+                      id="breed"
+                      name="breed"
+                      type="text"
+                      placeholder="Ej: Labrador, Siamés"
+                      value={formData.breed}
+                      onChange={(e) => setFormData({ ...formData, breed: e.target.value })}
+                      className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50"
                     />
                   </div>
-                  
+
+                  <div>
+                    <Label htmlFor="age" className="text-cyan-300">
+                      Edad (Opcional)
+                    </Label>
+                    <Input
+                      id="age"
+                      name="age"
+                      type="text"
+                      placeholder="Ej: 3 años, 6 meses"
+                      value={formData.age}
+                      onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                      className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="color" className="text-cyan-300">
+                      Color (Opcional)
+                    </Label>
+                    <Input
+                      id="color"
+                      name="color"
+                      type="text"
+                      placeholder="Ej: Negro con marrón, Blanco"
+                      value={formData.color}
+                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                      className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="location" className="text-cyan-300">
+                      Ubicación (Opcional)
+                    </Label>
+                    <Input
+                      id="location"
+                      name="location"
+                      type="text"
+                      placeholder="Ej: San Juan, Puerto Rico"
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      className="mt-1 bg-white/10 border-white/30 placeholder:text-white/50"
+                    />
+                  </div>
+
                   <hr className="border-white/20" />
                   
                   <div>

@@ -213,13 +213,52 @@ const PublicPetProfile = () => {
               </motion.div>
 
               {/* Pet Details */}
-              {pet.notes && (
-                <div className="space-y-4">
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                    <Award className="h-6 w-6 text-cyan-300" />
-                    Información de {pet.name}
-                  </h2>
+              <div className="space-y-4">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <Award className="h-6 w-6 text-cyan-300" />
+                  Información de {pet.name}
+                </h2>
 
+                <div className="grid md:grid-cols-2 gap-4">
+                  {pet.age && (
+                    <div className="bg-white/10 rounded-lg p-4 border border-white/20">
+                      <p className="text-white/70 text-sm mb-1">Edad</p>
+                      <p className="text-white text-lg font-semibold">{pet.age}</p>
+                    </div>
+                  )}
+
+                  {pet.color && (
+                    <div className="bg-white/10 rounded-lg p-4 border border-white/20">
+                      <p className="text-white/70 text-sm mb-1">Color</p>
+                      <p className="text-white text-lg font-semibold">{pet.color}</p>
+                    </div>
+                  )}
+
+                  {pet.location && (
+                    <div className="bg-white/10 rounded-lg p-4 border border-white/20">
+                      <p className="text-white/70 text-sm mb-1 flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Ubicación
+                      </p>
+                      <p className="text-white text-lg font-semibold">{pet.location}</p>
+                    </div>
+                  )}
+
+                  {pet.created_at && (
+                    <div className="bg-white/10 rounded-lg p-4 border border-white/20">
+                      <p className="text-white/70 text-sm mb-1">Plakita Activada</p>
+                      <p className="text-white text-lg font-semibold">
+                        {new Date(pet.created_at).toLocaleDateString('es-ES', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {pet.notes && (
                   <div className="bg-white/10 rounded-lg p-4 border border-white/20">
                     <h3 className="text-white font-semibold mb-2 flex items-center gap-2">
                       <AlertCircle className="h-5 w-5 text-cyan-300" />
@@ -229,8 +268,8 @@ const PublicPetProfile = () => {
                       {pet.notes}
                     </p>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Contact Section */}
               <div className="space-y-4">
