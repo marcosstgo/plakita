@@ -30,14 +30,19 @@ function App() {
               <Route path="register" element={<Register />} />
               <Route path="help" element={<Help />} />
               <Route path="nfc-guide" element={<NFCGuide />} />
-              <Route path="activate-plakita" element={ 
+              <Route path="activate-plakita" element={
                 <ProtectedRoute>
-                  <ActivateTagPage /> 
+                  <ActivateTagPage />
                 </ProtectedRoute>
               } />
-              <Route path="activate-tag/:tagCode" element={ 
+              <Route path="activate-tag" element={
                 <ProtectedRoute>
-                  <ActivateTagPage /> 
+                  <ActivateTagPage />
+                </ProtectedRoute>
+              } />
+              <Route path="activate-tag/:tagCode" element={
+                <ProtectedRoute>
+                  <ActivateTagPage />
                 </ProtectedRoute>
               } />
               <Route path="dashboard" element={
