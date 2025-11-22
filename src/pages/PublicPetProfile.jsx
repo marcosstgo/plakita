@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, Phone, Mail, MessageCircle, ShieldAlert, QrCode } from 'lucide-react';
+import { Heart, Phone, Mail, MessageCircle, ShieldAlert, QrCode, Wifi } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getPublicPetById } from '@/lib/supabaseClient';
@@ -303,6 +303,19 @@ const PublicPetProfile = () => {
               <p className="text-white/80 text-lg">
                 Mi familia y yo te agradecemos mucho que me hayas encontrado.
               </p>
+
+              {/* Indicador NFC si el tag lo tiene */}
+              {tag?.has_nfc && (
+                <div className="mt-6 p-3 bg-green-500/20 border border-green-500/30 rounded-lg">
+                  <div className="flex items-center justify-center gap-2 text-green-300">
+                    <Wifi className="h-5 w-5" />
+                    <span className="text-sm font-semibold">Esta Plakita tiene tecnología NFC</span>
+                  </div>
+                  <p className="text-xs text-green-200 mt-1">
+                    Puedes acercar tu teléfono a la Plakita para abrir este perfil instantáneamente
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>

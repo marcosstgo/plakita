@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Tag, PawPrint, UserCircle, Phone, Mail, Edit3, AlertTriangle, CheckCircle, Bug, TestTube, RefreshCw } from 'lucide-react';
+import { Tag, PawPrint, UserCircle, Phone, Mail, Edit3, AlertTriangle, CheckCircle, Bug, TestTube, RefreshCw, Wifi } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { toast } from '@/components/ui/use-toast';
 import { getTagByCode, activateTagWithPet, debugTagSearch, createTestTags } from '@/lib/supabaseClient';
 import { validatePetForm, sanitizePetFormData } from '@/components/forms/PetFormValidation';
 import FormErrorDisplay from '@/components/forms/FormErrorDisplay';
+import { isNFCSupported, startNFCScan, extractTagCodeFromURL, getNFCInfo } from '@/utils/nfcUtils';
 
 const ActivateTagPage = () => {
   const { tagCode: tagCodeFromParams } = useParams();
@@ -31,6 +32,11 @@ const ActivateTagPage = () => {
   const [debugInfo, setDebugInfo] = useState(null);
   const [isCreatingTestTags, setIsCreatingTestTags] = useState(false);
 
+  // Estados NFC
+  const [nfcSupported, setNfcSupported] = useState(false);
+  const [nfcScanning, setNfcScanning] = useState(false);
+  const [nfcInfo, setNfcInfo] = useState(null);
+
   const [formData, setFormData] = useState({
     name: '', 
     type: '', 
@@ -41,12 +47,78 @@ const ActivateTagPage = () => {
     notes: ''
   });
 
+  // useEffect para verificar soporte NFC
   useEffect(() => {
-    if (tagCodeFromParams && !authLoading) { 
+    const supported = isNFCSupported();
+    setNfcSupported(supported);
+    setNfcInfo(getNFCInfo());
+
+    if (supported) {
+      console.log('✅ NFC disponible en este dispositivo');
+    }
+  }, []);
+
+  // useEffect para iniciar escaneo NFC automático
+  useEffect(() => {
+    if (!nfcSupported || tagCodeFromParams || showPetForm) return;
+
+    let nfcReader = null;
+
+    const initNFCScan = async () => {
+      try {
+        setNfcScanning(true);
+
+        nfcReader = await startNFCScan(
+          (data) => {
+            console.log('📱 Tag NFC detectado:', data);
+
+            // Extraer código del tag de la URL
+            if (data.type === 'url') {
+              const code = extractTagCodeFromURL(data.url);
+
+              if (code) {
+                toast({
+                  title: "¡Tag NFC detectado!",
+                  description: `Código: ${code}`
+                });
+
+                setTagCode(code);
+                handleFetchTagInfo(code);
+                setNfcScanning(false);
+              } else {
+                toast({
+                  title: "URL NFC no reconocida",
+                  description: "El tag NFC no contiene un código de Plakita válido",
+                  variant: "destructive"
+                });
+              }
+            }
+          },
+          (error) => {
+            console.error('❌ Error NFC:', error);
+            setNfcScanning(false);
+          }
+        );
+      } catch (error) {
+        console.error('Error iniciando escaneo NFC:', error);
+        setNfcScanning(false);
+      }
+    };
+
+    initNFCScan();
+
+    // Cleanup
+    return () => {
+      setNfcScanning(false);
+    };
+  }, [nfcSupported, tagCodeFromParams, showPetForm]);
+
+  useEffect(() => {
+    if (tagCodeFromParams && !authLoading) {
       setTagCode(tagCodeFromParams);
       handleFetchTagInfo(tagCodeFromParams);
     } else if (!tagCodeFromParams) {
-      setIsLoading(false); 
+      setIsLoading(false);
     }
   }, [tagCodeFromParams, user, authLoading]);
 
@@ -379,6 +451,14 @@ const ActivateTagPage = () => {
             <CardDescription className="text-white/80">
               Ingresa el código de tu Plakita para activarla o editar su información.
             </CardDescription>
+            {nfcSupported && nfcScanning && (
+              <div className="mt-4 p-3 bg-blue-500/20 border border-blue-500/50 rounded-lg animate-pulse">
+                <p className="text-blue-200 text-sm flex items-center justify-center">
+                  <Wifi className="h-4 w-4 mr-2 animate-bounce" />
+                  Escaneo NFC activo - Acerca tu Plakita al dispositivo
+                </p>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             {!showPetForm && (

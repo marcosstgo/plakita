@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Tag, Users, QrCode, Heart, AlertTriangle, ShieldCheck, RefreshCw, Download, Eye, Trash2, TestTube, Chrome as Broom, Database, Bug, Wrench, CheckCircle } from 'lucide-react';
+import { Plus, Tag, Users, QrCode, Heart, AlertTriangle, ShieldCheck, RefreshCw, Download, Eye, Trash2, TestTube, Chrome as Broom, Database, Bug, Wrench, CheckCircle, Wifi } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -9,10 +9,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
-import { supabase, createTagWithValidation, createTestTags, cleanupTestTags, getAdminStatistics, getAllTagsWithDetails, validateAndFixIntegrity, getIntegrityReport, fixSpecificTags } from '@/lib/supabaseClient';
+import { supabase, createTagWithValidation, createTestTags, cleanupTestTags, getAdminStatistics, getAllTagsWithDetails, validateAndFixIntegrity, getIntegrityReport, fixSpecificTags, markTagAsNFC, getNFCStatistics } from '@/lib/supabaseClient';
 import QRCode from 'qrcode';
 import { validateTagCode, generateTagCode } from '@/components/forms/PetFormValidation';
 import FormErrorDisplay from '@/components/forms/FormErrorDisplay';
+import { isNFCSupported, writeNFCTag, generateActivationURL, getNFCInfo } from '@/utils/nfcUtils';
 
 // ID CORRECTO del usuario admin santiago.marcos@gmail.com obtenido de la consulta SQL
 export const ADMIN_USER_ID = '3d4b3b56-fba6-4d76-866c-f38551c7a6c4';
@@ -37,12 +38,20 @@ const AdminDashboard = () => {
   // Estados de diálogos
   const [isCreateTagDialogOpen, setIsCreateTagDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isNFCDialogOpen, setIsNFCDialogOpen] = useState(false);
   const [tagToDelete, setTagToDelete] = useState(null);
-  
+  const [tagToWriteNFC, setTagToWriteNFC] = useState(null);
+
   // Estados del formulario
   const [newTagCode, setNewTagCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState({});
+
+  // Estados NFC
+  const [nfcSupported, setNfcSupported] = useState(false);
+  const [nfcStats, setNfcStats] = useState(null);
+  const [isWritingNFC, setIsWritingNFC] = useState(false);
+  const [nfcWriteProgress, setNfcWriteProgress] = useState('');
   
   // Estados de verificación
   const [databaseStatus, setDatabaseStatus] = useState(null);
@@ -105,6 +114,80 @@ const AdminDashboard = () => {
 
     loadAdminData();
   }, [user, authLoading, navigate]);
+
+  // Verificar soporte NFC
+  useEffect(() => {
+    const supported = isNFCSupported();
+    setNfcSupported(supported);
+
+    if (supported) {
+      console.log('✅ NFC disponible para escribir tags');
+      loadNFCStats();
+    }
+  }, []);
+
+  // Cargar estadísticas NFC
+  const loadNFCStats = async () => {
+    try {
+      const result = await getNFCStatistics();
+      if (result.success) {
+        setNfcStats(result.data);
+      }
+    } catch (error) {
+      console.error('Error cargando estadísticas NFC:', error);
+    }
+  };
+
+  // Escribir tag NFC
+  const handleWriteNFC = async (tag) => {
+    setTagToWriteNFC(tag);
+    setIsNFCDialogOpen(true);
+  };
+
+  const confirmWriteNFC = async () => {
+    if (!tagToWriteNFC) return;
+
+    setIsWritingNFC(true);
+    setNfcWriteProgress('Preparando...');
+
+    try {
+      const url = generateActivationURL(tagToWriteNFC.code);
+
+      await writeNFCTag(url, {
+        onProgress: (progress) => {
+          setNfcWriteProgress(progress);
+        }
+      });
+
+      // Marcar el tag como NFC en la base de datos
+      const result = await markTagAsNFC(tagToWriteNFC.id);
+
+      if (result.success) {
+        toast({
+          title: "¡Tag NFC escrito!",
+          description: `El tag ${tagToWriteNFC.code} ahora tiene soporte NFC.`
+        });
+
+        setIsNFCDialogOpen(false);
+        setTagToWriteNFC(null);
+        await loadTags();
+        await loadNFCStats();
+      } else {
+        throw new Error(result.error);
+      }
+
+    } catch (error) {
+      console.error('Error escribiendo NFC:', error);
+      toast({
+        title: "Error escribiendo NFC",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsWritingNFC(false);
+      setNfcWriteProgress('');
+    }
+  };
 
   // Verificar estado de la base de datos
   const checkDatabaseHealth = async () => {
@@ -649,6 +732,16 @@ const AdminDashboard = () => {
     { name: 'Total Usuarios Registrados', value: stats.totalUsers, icon: Users },
   ];
 
+  // Agregar estadística NFC si hay datos
+  if (nfcStats && nfcStats.total_nfc_tags > 0) {
+    statsData.push({
+      name: 'Tags con NFC',
+      value: `${nfcStats.total_nfc_tags} (${nfcStats.nfc_adoption_rate}%)`,
+      icon: Wifi,
+      highlight: true
+    });
+  }
+
   return (
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-7xl mx-auto">
@@ -919,10 +1012,18 @@ const AdminDashboard = () => {
                             tag.hasIntegrityIssue ? 'bg-red-500/10' : ''
                           }`}>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">
-                              {tag.code}
-                              {tag.hasIntegrityIssue && (
-                                <AlertTriangle className="h-4 w-4 text-red-400 inline ml-2\" title="Problema de integridad" />
-                              )}
+                              <div className="flex items-center gap-2">
+                                {tag.code}
+                                {tag.has_nfc && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-300 border border-green-500/30" title="Tag con NFC">
+                                    <Wifi className="h-3 w-3 mr-1" />
+                                    NFC
+                                  </span>
+                                )}
+                                {tag.hasIntegrityIssue && (
+                                  <AlertTriangle className="h-4 w-4 text-red-400" title="Problema de integridad" />
+                                )}
+                              </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -970,19 +1071,30 @@ const AdminDashboard = () => {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                               <div className="flex space-x-2">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 p-2" 
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 p-2"
                                   onClick={() => downloadActivationQR(tag)}
                                   title="Descargar QR de Activación"
                                 >
                                   <Download className="h-4 w-4"/>
                                 </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="text-red-400 hover:text-red-300 hover:bg-red-500/20 p-2" 
+                                {nfcSupported && !tag.has_nfc && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-green-400 hover:text-green-300 hover:bg-green-500/20 p-2"
+                                    onClick={() => handleWriteNFC(tag)}
+                                    title="Escribir NFC en Tag"
+                                  >
+                                    <Wifi className="h-4 w-4"/>
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-400 hover:text-red-300 hover:bg-red-500/20 p-2"
                                   onClick={() => {
                                     setTagToDelete(tag);
                                     setIsDeleteDialogOpen(true);
@@ -1113,6 +1225,78 @@ const AdminDashboard = () => {
             >
               <Trash2 className="h-4 w-4 mr-2"/>
               Sí, Eliminar Plakita
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para escribir NFC */}
+      <Dialog open={isNFCDialogOpen} onOpenChange={setIsNFCDialogOpen}>
+        <DialogContent className="bg-gray-800 text-white border-green-500 shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="text-green-300 text-2xl flex items-center">
+              <Wifi className="h-6 w-6 mr-2 text-green-300" />
+              Escribir Tag NFC
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-gray-300 mb-4">
+              Vas a escribir la URL de activación en el chip NFC del tag{' '}
+              <span className="font-semibold text-cyan-300">{tagToWriteNFC?.code}</span>
+            </p>
+
+            {!isWritingNFC ? (
+              <>
+                <div className="bg-blue-500/10 p-4 rounded-lg mb-4">
+                  <h4 className="text-sm font-semibold text-blue-300 mb-2">Instrucciones:</h4>
+                  <ol className="text-sm text-gray-300 space-y-1 list-decimal list-inside">
+                    <li>Ten el tag NFC físico listo</li>
+                    <li>Haz clic en "Escribir NFC"</li>
+                    <li>Acerca el tag NFC a tu dispositivo</li>
+                    <li>Mantén el tag cerca hasta que termine</li>
+                  </ol>
+                </div>
+
+                <div className="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-lg">
+                  <p className="text-xs text-yellow-300">
+                    ⚠️ Esta acción escribirá permanentemente la URL en el chip NFC. Asegúrate de usar el tag correcto.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="bg-green-500/10 p-6 rounded-lg text-center">
+                <Wifi className="h-12 w-12 text-green-400 mx-auto mb-4 animate-pulse" />
+                <p className="text-green-300 font-semibold mb-2">{nfcWriteProgress}</p>
+                <p className="text-sm text-gray-400">Mantén el tag NFC cerca del dispositivo...</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="sm:justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsNFCDialogOpen(false);
+                setTagToWriteNFC(null);
+                setNfcWriteProgress('');
+              }}
+              className="border-gray-500 text-gray-300 hover:bg-gray-700"
+              disabled={isWritingNFC}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={confirmWriteNFC}
+              className="bg-green-600 hover:bg-green-700 text-white"
+              disabled={isWritingNFC}
+            >
+              {isWritingNFC ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              ) : (
+                <Wifi className="h-4 w-4 mr-2" />
+              )}
+              Escribir NFC
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1093,34 +1093,79 @@ export const createTestTags = async (count = 5) => {
 export const cleanupTestTags = async () => {
   try {
     console.log('🧹 Limpiando tags de prueba...');
-    
+
     const { data: testTags, error: findError } = await supabase
       .from('tags')
       .select('id, code')
       .ilike('code', 'PLK-TEST%');
-    
+
     if (findError) {
       throw findError;
     }
-    
+
     if (!testTags || testTags.length === 0) {
       return { success: true, deleted: 0, message: 'No hay tags de prueba para eliminar' };
     }
-    
+
     const { error: deleteError } = await supabase
       .from('tags')
       .delete()
       .ilike('code', 'PLK-TEST%');
-    
+
     if (deleteError) {
       throw deleteError;
     }
-    
+
     console.log(`✅ ${testTags.length} tags de prueba eliminados`);
     return { success: true, deleted: testTags.length };
-    
+
   } catch (error) {
     console.error('❌ Error limpiando tags de prueba:', error);
     return { success: false, error: error.message };
+  }
+};
+
+// NUEVA FUNCIÓN: Marcar tag como NFC
+export const markTagAsNFC = async (tagId, nfcUid = null) => {
+  try {
+    console.log('📶 Marcando tag como NFC:', tagId);
+
+    const { data, error } = await supabase
+      .rpc('mark_tag_as_nfc', {
+        tag_id_param: tagId,
+        nfc_uid_param: nfcUid
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    console.log('✅ Tag marcado como NFC:', data);
+    return { success: true, data, error: null };
+
+  } catch (error) {
+    console.error('❌ Error marcando tag como NFC:', error);
+    return { success: false, data: null, error: error.message };
+  }
+};
+
+// NUEVA FUNCIÓN: Obtener estadísticas NFC
+export const getNFCStatistics = async () => {
+  try {
+    console.log('📊 Obteniendo estadísticas NFC...');
+
+    const { data, error } = await supabase
+      .rpc('get_nfc_statistics');
+
+    if (error) {
+      throw error;
+    }
+
+    console.log('📊 Estadísticas NFC:', data);
+    return { success: true, data, error: null };
+
+  } catch (error) {
+    console.error('❌ Error obteniendo estadísticas NFC:', error);
+    return { success: false, data: null, error: error.message };
   }
 };
