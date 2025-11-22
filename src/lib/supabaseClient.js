@@ -1,13 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Verificar que existan las variables de entorno
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ Variables de entorno de Supabase no encontradas');
-  throw new Error('Configuración de Supabase incompleta. Verifica tu archivo .env');
-}
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vwldszelyeeolwqnqmxj.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3bGRzemVseWVlb2x3cW5xbXhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3ODAyODUsImV4cCI6MjA3OTM1NjI4NX0.SfmXGI7bW-Q6fsvoEzeo6ZFIDhK9Eqqi_rEANzm9QYM';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
