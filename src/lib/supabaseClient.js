@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 
 // Usar variables de entorno para mayor seguridad
 // Valores de fallback en caso de que no estén definidas las variables
-const fallbackUrl = 'https://vwldszelyeeolwqnqmxj.supabase.co';
-const fallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3bGRzemVseWVlb2x3cW5xbXhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3ODAyODUsImV4cCI6MjA3OTM1NjI4NX0.SfmXGI7bW-Q6fsvoEzeo6ZFIDhK9Eqqi_rEANzm9QYM';
+const fallbackUrl = 'https://pjojqwgxopdclfsovlgt.supabase.co';
+const fallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqb2pxd2d4b3BkY2xmc292bGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI0MDk1NDAsImV4cCI6MjA0Nzk4NTU0MH0.aKrExWwxKmfwCM3Z3aqCWiTHCxmcQqKO5N9R1Y8mWyI';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || fallbackUrl;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || fallbackKey;
