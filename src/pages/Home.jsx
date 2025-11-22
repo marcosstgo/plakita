@@ -152,6 +152,30 @@ const Home = () => {
             </p>
           </motion.div>
 
+          {/* Feature Cards */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="grid md:grid-cols-3 gap-6 mb-12"
+          >
+            <div className="gradient-card rounded-xl p-6 text-center">
+              <QrCode className="h-12 w-12 text-white mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">Código QR</h3>
+              <p className="text-white/80">Escaneo rápido con cualquier teléfono</p>
+            </div>
+            <div className="gradient-card rounded-xl p-6 text-center">
+              <Wifi className="h-12 w-12 text-white mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">Tecnología NFC</h3>
+              <p className="text-white/80">Solo acerca tu teléfono, sin apps</p>
+            </div>
+            <div className="gradient-card rounded-xl p-6 text-center">
+              <Shield className="h-12 w-12 text-white mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">100% Seguro</h3>
+              <p className="text-white/80">Tus datos protegidos siempre</p>
+            </div>
+          </motion.div>
+
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
