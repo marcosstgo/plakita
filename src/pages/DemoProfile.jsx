@@ -49,7 +49,7 @@ const DemoProfile = () => {
                   </div>
                 </div>
                 <Link to="/">
-                  <Button variant="outline" className="border-white/30 text-white hover:bg-white hover:text-sky-600 transition-all">
+                  <Button variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-sky-600 transition-all !bg-transparent">
                     Volver al Inicio
                   </Button>
                 </Link>
@@ -307,7 +307,7 @@ const DemoProfile = () => {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-white text-white hover:bg-white hover:text-sky-600 w-full sm:w-auto transition-all"
+                    className="border-white text-white hover:bg-white hover:text-sky-600 w-full sm:w-auto transition-all !bg-transparent"
                   >
                     <Wifi className="h-5 w-5 mr-2" />
                     Cómo Funciona NFC
@@ -317,7 +317,7 @@ const DemoProfile = () => {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-white text-white hover:bg-white hover:text-sky-600 w-full sm:w-auto transition-all"
+                    className="border-white text-white hover:bg-white hover:text-sky-600 w-full sm:w-auto transition-all !bg-transparent"
                   >
                     Ver Preguntas Frecuentes
                     <ArrowRight className="h-5 w-5 ml-2" />

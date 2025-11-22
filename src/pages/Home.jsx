@@ -44,7 +44,7 @@ const Home = () => {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="bg-transparent border-white text-white hover:bg-white hover:text-sky-600 text-lg px-8 py-4 transition-all"
+                  className="!bg-transparent border-white text-white hover:bg-white hover:text-sky-600 text-lg px-8 py-4 transition-all"
                 >
                   Ver Demo
                 </Button>
