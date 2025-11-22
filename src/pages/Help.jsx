@@ -235,13 +235,21 @@ const Help = () => {
                 Nuestro equipo está aquí para ayudarte. No dudes en contactarnos por WhatsApp 
                 para recibir asistencia personalizada con tu Plakita.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Button
                   onClick={handleWhatsAppContact}
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
                   Contactar Soporte
+                </Button>
+                <Button
+                  onClick={() => window.location.href = '/demo'}
+                  variant="outline"
+                  className="border-white text-white hover:bg-white/20"
+                >
+                  <Heart className="h-4 w-4 mr-2" />
+                  Ver Demo
                 </Button>
                 <Button
                   onClick={() => window.location.href = '/nfc-guide'}

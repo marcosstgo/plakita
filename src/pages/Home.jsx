@@ -40,9 +40,18 @@ const Home = () => {
                   Registra tu Plakita
                 </Button>
               </Link>
-              <Button 
-                size="lg" 
-                variant="outline" 
+              <Link to="/demo">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="bg-transparent border-white text-white hover:bg-white/20 text-lg px-8 py-4"
+                >
+                  Ver Demo
+                </Button>
+              </Link>
+              <Button
+                size="lg"
+                variant="outline"
                 className="bg-transparent border-white text-white hover:bg-white/20 text-lg px-8 py-4"
                 onClick={scrollToPricing}
               >
@@ -257,13 +266,24 @@ const Home = () => {
             <p className="text-xl text-white/80 mb-8">
               Únete a la comunidad de dueños responsables que eligen la mejor protección.
             </p>
-            <Button 
-              size="lg" 
-              className="bg-white text-sky-600 hover:bg-white/90 text-lg px-8 py-4 pulse-glow"
-              onClick={scrollToPricing}
-            >
-              Ver Planes y Beneficios
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link to="/demo">
+                <Button
+                  size="lg"
+                  className="bg-white text-sky-600 hover:bg-white/90 text-lg px-8 py-4 pulse-glow"
+                >
+                  Ver Demo del Perfil
+                </Button>
+              </Link>
+              <Button
+                size="lg"
+                variant="outline"
+                className="bg-transparent border-white text-white hover:bg-white/20 text-lg px-8 py-4"
+                onClick={scrollToPricing}
+              >
+                Ver Planes y Beneficios
+              </Button>
+            </div>
           </motion.div>
         </div>
       </section>
