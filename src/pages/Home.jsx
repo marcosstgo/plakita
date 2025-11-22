@@ -66,10 +66,10 @@ const Home = () => {
             transition={{ duration: 1, delay: 0.3 }}
             className="floating-animation"
           >
-            <img   
+            <img
               className="mx-auto rounded-2xl shadow-2xl max-w-4xl w-full"
-              alt="Perro feliz con collar QR y su dueño sonriendo"
-              src="https://images.unsplash.com/photo-1607796162681-9a64c9e933b5" />
+              alt="Perro con Plakita NFC en su collar"
+              src="/plakita-ejemplo.webp" />
           </motion.div>
         </div>
       </section>
