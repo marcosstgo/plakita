@@ -34,7 +34,7 @@ export const adminVerifyUser = async (email) => {
     }
 
     // Verificar si es admin
-    const ADMIN_USER_ID = '3d4b3b56-fba6-4d76-866c-f38551c7a6c4';
+    const ADMIN_USER_ID = '0b89482f-4271-49d8-a71f-afeb261a30f2';
     const isAdmin = result.data.user.id === ADMIN_USER_ID || result.data.user.email === 'santiago.marcos@gmail.com';
 
     const finalResult = {
